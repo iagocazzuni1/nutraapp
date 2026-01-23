@@ -17,7 +17,7 @@
 
 // Stripe Payment Link (replace with your own)
 // Example: "https://buy.stripe.com/your_payment_link"
-const STRIPE_PAYMENT_LINK = null; // Set to null for demo mode
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/9B6aEZfEc7Nw0V45XwaEE00";
 
 // Stripe Publishable Key (for advanced integration)
 const STRIPE_PUBLISHABLE_KEY = "pk_test_your_publishable_key";
