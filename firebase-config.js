@@ -4,12 +4,12 @@
 // ============================================
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAuk8GrXwT9Z3kS-8Uv4yLqhZ06bPuAbMI",
+    authDomain: "nutraapp-fad78.firebaseapp.com",
+    projectId: "nutraapp-fad78",
+    storageBucket: "nutraapp-fad78.firebasestorage.app",
+    messagingSenderId: "204437346983",
+    appId: "1:204437346983:web:e5742996223c292a01d982"
 };
 
 // Check if Firebase should be used (config is set)
