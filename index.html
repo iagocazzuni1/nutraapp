@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriPlan - Your Personalized Meal Plan</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <span class="logo-icon">🥗</span>
+                <span class="logo-text">NutriPlan</span>
+            </div>
+            <div class="nav-auth" id="navAuth">
+                <!-- Will be populated by JS -->
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Transform Your Body With a <span>Personalized Plan</span></h1>
+                <p>Get a meal and workout plan tailored specifically for you, based on your goals and lifestyle. Includes animated exercise guides showing exactly which muscles you're working.</p>
+                <a href="#form-section" class="btn-primary">
+                    Get Started
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+            </div>
+        </section>
+
+        <!-- Form Section -->
+        <section id="form-section" class="form-section">
+            <div class="container">
+                <h2>Tell Us About Yourself</h2>
+                <p class="form-subtitle">Fill in the details below to generate your personalized plan</p>
+
+                <form id="nutriForm" class="nutri-form">
+                    <!-- Personal Data -->
+                    <div class="form-group-title">
+                        <span class="step-number">1</span>
+                        <h3>Personal Information</h3>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nome">Name</label>
+                            <input type="text" id="nome" name="nome" placeholder="Your name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="idade">Age</label>
+                            <input type="number" id="idade" name="idade" placeholder="e.g. 25" min="14" max="100" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sexo">Biological Sex</label>
+                            <select id="sexo" name="sexo" required>
+                                <option value="">Select</option>
+                                <option value="masculino">Male</option>
+                                <option value="feminino">Female</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="altura">Height (inches)</label>
+                            <input type="number" id="altura" name="altura" placeholder="e.g. 70" min="48" max="96" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="peso">Current Weight (lbs)</label>
+                            <input type="number" id="peso" name="peso" placeholder="e.g. 154" min="66" max="660" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pesoMeta">Goal Weight (lbs)</label>
+                            <input type="number" id="pesoMeta" name="pesoMeta" placeholder="e.g. 143" min="66" max="660" step="0.1" required>
+                        </div>
+                    </div>
+
+                    <!-- Lifestyle -->
+                    <div class="form-group-title">
+                        <span class="step-number">2</span>
+                        <h3>Lifestyle</h3>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nivelAtividade">Daily Activity Level</label>
+                            <select id="nivelAtividade" name="nivelAtividade" required>
+                                <option value="">Select</option>
+                                <option value="sedentario">Sedentary (desk job)</option>
+                                <option value="leve">Lightly active (light walks)</option>
+                                <option value="moderado">Moderately active (standing job)</option>
+                                <option value="ativo">Very active (physical job)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="frequenciaAcademia">Gym Frequency (days/week)</label>
+                            <select id="frequenciaAcademia" name="frequenciaAcademia" required>
+                                <option value="">Select</option>
+                                <option value="0">Don't workout</option>
+                                <option value="1-2">1-2 days</option>
+                                <option value="3-4">3-4 days</option>
+                                <option value="5-6">5-6 days</option>
+                                <option value="7">Every day</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="refeicoesDia">Meals per day?</label>
+                            <select id="refeicoesDia" name="refeicoesDia" required>
+                                <option value="">Select</option>
+                                <option value="3">3 meals</option>
+                                <option value="4">4 meals</option>
+                                <option value="5">5 meals</option>
+                                <option value="6">6 meals</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="horarioTreino">Preferred workout time</label>
+                            <select id="horarioTreino" name="horarioTreino" required>
+                                <option value="">Select</option>
+                                <option value="manha">Morning (6am-12pm)</option>
+                                <option value="tarde">Afternoon (12pm-6pm)</option>
+                                <option value="noite">Evening (6pm-10pm)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Goals -->
+                    <div class="form-group-title">
+                        <span class="step-number">3</span>
+                        <h3>Your Goal</h3>
+                    </div>
+
+                    <div class="form-group objetivo-group">
+                        <label>What is your main goal?</label>
+                        <div class="objetivo-options">
+                            <label class="objetivo-card">
+                                <input type="radio" name="objetivo" value="emagrecer" required>
+                                <div class="objetivo-content">
+                                    <span class="objetivo-icon">🔥</span>
+                                    <span class="objetivo-title">Lose Weight</span>
+                                    <span class="objetivo-desc">Burn fat and get lean</span>
+                                </div>
+                            </label>
+                            <label class="objetivo-card">
+                                <input type="radio" name="objetivo" value="manter">
+                                <div class="objetivo-content">
+                                    <span class="objetivo-icon">⚖️</span>
+                                    <span class="objetivo-title">Maintain</span>
+                                    <span class="objetivo-desc">Keep weight and health</span>
+                                </div>
+                            </label>
+                            <label class="objetivo-card">
+                                <input type="radio" name="objetivo" value="ganharMassa">
+                                <div class="objetivo-content">
+                                    <span class="objetivo-icon">💪</span>
+                                    <span class="objetivo-title">Build Muscle</span>
+                                    <span class="objetivo-desc">Gain muscle mass</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Restrictions -->
+                    <div class="form-group-title">
+                        <span class="step-number">4</span>
+                        <h3>Dietary Restrictions</h3>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Do you have any restrictions? (optional)</label>
+                        <div class="restricoes-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="restricoes" value="lactose">
+                                <span>Lactose intolerant</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="restricoes" value="gluten">
+                                <span>Gluten intolerant</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="restricoes" value="vegetariano">
+                                <span>Vegetarian</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="restricoes" value="vegano">
+                                <span>Vegan</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Experience -->
+                    <div class="form-group-title">
+                        <span class="step-number">5</span>
+                        <h3>Training Experience</h3>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="experiencia">Gym experience level</label>
+                        <select id="experiencia" name="experiencia" required>
+                            <option value="">Select</option>
+                            <option value="iniciante">Beginner (less than 6 months)</option>
+                            <option value="intermediario">Intermediate (6 months to 2 years)</option>
+                            <option value="avancado">Advanced (more than 2 years)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <span>Generate My Plan</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Results Section (initially hidden) -->
+        <section id="resultados" class="results-section hidden">
+            <div class="container">
+                <!-- Profile Summary -->
+                <div class="result-card profile-summary">
+                    <h2>Your Profile</h2>
+                    <div id="profileSummary" class="profile-grid"></div>
+                </div>
+
+                <!-- Nutritional Calculations -->
+                <div class="result-card nutrition-calc">
+                    <h2>Your Numbers</h2>
+                    <div id="nutritionNumbers" class="nutrition-grid"></div>
+                </div>
+
+                <!-- Meal Plan (Premium) -->
+                <div class="result-card meal-plan">
+                    <div class="card-header-premium">
+                        <h2>Meal Plan</h2>
+                        <span class="premium-badge" id="mealPlanBadge">🔒 Premium</span>
+                    </div>
+                    <p class="plan-description">Based on your goal and caloric needs. Click on each meal to see recipe suggestions.</p>
+                    <div id="mealPlan" class="meals-container"></div>
+                </div>
+
+                <!-- Workout Plan (Premium) -->
+                <div class="result-card workout-plan">
+                    <div class="card-header-premium">
+                        <h2>Workout Plan</h2>
+                        <span class="premium-badge" id="workoutPlanBadge">🔒 Premium</span>
+                    </div>
+                    <p class="plan-description">A, B, C, D split by muscle groups. Click on each workout to see exercises and video tutorials.</p>
+                    <div id="workoutPlan" class="workout-container"></div>
+                </div>
+
+                <!-- Tips -->
+                <div class="result-card tips-card">
+                    <h2>Tips For Your Goal</h2>
+                    <div id="tipsSection"></div>
+                </div>
+
+                <!-- Redo Button -->
+                <button id="btnRefazer" class="btn-secondary">
+                    Start Over
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content modal-auth">
+            <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                    <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <h2>Welcome Back!</h2>
+                    <p>Sign in to access your personalized plans</p>
+
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="Your password" required>
+                    </div>
+
+                    <div id="loginError" class="auth-error"></div>
+
+                    <button type="submit" class="btn-auth">Sign In</button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form hidden">
+                    <h2>Create Account</h2>
+                    <p>Join NutriPlan and start your transformation</p>
+
+                    <div class="form-group">
+                        <label for="registerName">Full Name</label>
+                        <input type="text" id="registerName" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" placeholder="Min. 6 characters" minlength="6" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerConfirm">Confirm Password</label>
+                        <input type="password" id="registerConfirm" placeholder="Confirm password" required>
+                    </div>
+
+                    <div id="registerError" class="auth-error"></div>
+
+                    <button type="submit" class="btn-auth">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Upgrade Modal -->
+    <div id="premiumModal" class="modal">
+        <div class="modal-content modal-premium">
+            <button class="modal-close" onclick="closeModal('premiumModal')">&times;</button>
+            <div class="premium-container">
+                <div class="premium-icon">👑</div>
+                <h2>Unlock Premium Content</h2>
+                <p>Get full access to personalized recipes, detailed workout plans, and video tutorials!</p>
+
+                <div class="premium-features">
+                    <div class="premium-feature">
+                        <span class="feature-icon">🍽️</span>
+                        <div>
+                            <strong>36+ Recipes</strong>
+                            <p>Complete ingredients, instructions & videos</p>
+                        </div>
+                    </div>
+                    <div class="premium-feature">
+                        <span class="feature-icon">💪</span>
+                        <div>
+                            <strong>9 Workout Plans</strong>
+                            <p>Personalized by goal & experience level</p>
+                        </div>
+                    </div>
+                    <div class="premium-feature">
+                        <span class="feature-icon">🎬</span>
+                        <div>
+                            <strong>Video Tutorials</strong>
+                            <p>Step-by-step guidance for every exercise</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-pricing">
+                    <div class="price-tag">
+                        <span class="price-old">$19.99</span>
+                        <span class="price-new">$5</span>
+                        <span class="price-period">/month</span>
+                    </div>
+                    <p class="price-promo">🎉 Limited time offer - 75% OFF!</p>
+                </div>
+
+                <button class="btn-premium" onclick="upgradeToPremium()">
+                    Upgrade Now
+                </button>
+
+                <p class="premium-note">Cancel anytime. 30-day money-back guarantee.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipe Modal -->
+    <div id="recipeModal" class="modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" onclick="closeModal('recipeModal')">&times;</button>
+            <div id="recipeModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Workout Modal -->
+    <div id="workoutModal" class="modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" onclick="closeModal('workoutModal')">&times;</button>
+            <div id="workoutModalContent"></div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>NutriPlan &copy; 2025 - Your personalized nutrition and workout plan</p>
+            <p class="disclaimer">This plan is general guidance. Always consult a nutritionist and personal trainer.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK (optional - for production auth) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="stripe-config.js"></script>
+    <script src="data.js"></script>
+    <script src="exercises.js"></script>
+    <script src="exercise-gifs.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

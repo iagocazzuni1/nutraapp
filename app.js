@@ -1,0 +1,702 @@
+// ============================================
+// APP.JS - Main Logic for NutriPlan
+// ============================================
+
+// DOM Elements
+const form = document.getElementById('nutriForm');
+const formSection = document.querySelector('.form-section');
+const resultsSection = document.getElementById('resultados');
+const btnRefazer = document.getElementById('btnRefazer');
+
+// Global state to store user data
+let userData = {};
+let currentRecipes = {};
+let currentWorkout = {};
+
+// Event Listeners
+form.addEventListener('submit', handleFormSubmit);
+btnRefazer.addEventListener('click', resetForm);
+
+// Close modal when clicking outside
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal(modal.id);
+        }
+    });
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.active').forEach(modal => {
+            closeModal(modal.id);
+        });
+    }
+});
+
+// ============================================
+// CALCULATION FUNCTIONS
+// ============================================
+
+/**
+ * Converts lbs to kg
+ */
+function lbsToKg(lbs) {
+    return lbs * 0.453592;
+}
+
+/**
+ * Converts inches to cm
+ */
+function inchesToCm(inches) {
+    return inches * 2.54;
+}
+
+/**
+ * Calculates BMR using Mifflin-St Jeor formula
+ */
+function calculateBMR(weightLbs, heightInches, age, sex) {
+    const weightKg = lbsToKg(weightLbs);
+    const heightCm = inchesToCm(heightInches);
+
+    if (sex === 'masculino') {
+        return (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+    } else {
+        return (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+    }
+}
+
+/**
+ * Calculates TDEE based on activity level and gym frequency
+ */
+function calculateTDEE(bmr, activityLevel, gymFrequency) {
+    const activityFactors = {
+        'sedentario': 1.2,
+        'leve': 1.375,
+        'moderado': 1.55,
+        'ativo': 1.725
+    };
+
+    const gymAdjustment = {
+        '0': 0,
+        '1-2': 0.1,
+        '3-4': 0.15,
+        '5-6': 0.2,
+        '7': 0.25
+    };
+
+    const baseFactor = activityFactors[activityLevel] || 1.2;
+    const adjustment = gymAdjustment[gymFrequency] || 0;
+
+    return bmr * (baseFactor + adjustment);
+}
+
+/**
+ * Adjusts calories based on goal
+ */
+function adjustCaloriesForGoal(tdee, goal) {
+    switch (goal) {
+        case 'emagrecer':
+            return Math.round(tdee * 0.80); // 20% deficit
+        case 'manter':
+            return Math.round(tdee);
+        case 'ganharMassa':
+            return Math.round(tdee * 1.15); // 15% surplus
+        default:
+            return Math.round(tdee);
+    }
+}
+
+/**
+ * Calculates macronutrient distribution
+ */
+function calculateMacros(calories, goal, weightLbs) {
+    const distribution = MEAL_PLANS[goal].distribution;
+
+    // Protein based on body weight
+    let proteinPerLb;
+    switch (goal) {
+        case 'emagrecer':
+            proteinPerLb = 1.0; // High to preserve muscle
+            break;
+        case 'manter':
+            proteinPerLb = 0.8;
+            break;
+        case 'ganharMassa':
+            proteinPerLb = 1.0;
+            break;
+        default:
+            proteinPerLb = 0.9;
+    }
+
+    const protein = Math.round(weightLbs * proteinPerLb);
+    const proteinCalories = protein * 4;
+
+    // Distribute remaining between carbs and fat
+    const remainingCalories = calories - proteinCalories;
+    const carbRatio = distribution.carbs / (distribution.carbs + distribution.fat);
+
+    const carbs = Math.round((remainingCalories * carbRatio) / 4);
+    const fat = Math.round((remainingCalories * (1 - carbRatio)) / 9);
+
+    return {
+        protein,
+        carbs,
+        fat,
+        proteinCalories,
+        carbCalories: carbs * 4,
+        fatCalories: fat * 9
+    };
+}
+
+/**
+ * Calculates BMI
+ */
+function calculateBMI(weightLbs, heightInches) {
+    const weightKg = lbsToKg(weightLbs);
+    const heightM = inchesToCm(heightInches) / 100;
+    return (weightKg / (heightM * heightM)).toFixed(1);
+}
+
+/**
+ * Classifies BMI
+ */
+function classifyBMI(bmi) {
+    if (bmi < 18.5) return 'Underweight';
+    if (bmi < 25) return 'Normal';
+    if (bmi < 30) return 'Overweight';
+    if (bmi < 35) return 'Obese I';
+    if (bmi < 40) return 'Obese II';
+    return 'Obese III';
+}
+
+// ============================================
+// CONTENT GENERATION FUNCTIONS
+// ============================================
+
+/**
+ * Generates profile summary
+ */
+function generateProfileSummary(data) {
+    const bmi = calculateBMI(data.weight, data.height);
+    const bmiClass = classifyBMI(bmi);
+
+    const goalText = {
+        'emagrecer': 'Weight Loss',
+        'manter': 'Maintenance',
+        'ganharMassa': 'Muscle Gain'
+    };
+
+    return `
+        <div class="profile-item">
+            <div class="value">${data.name.split(' ')[0]}</div>
+            <div class="label">Name</div>
+        </div>
+        <div class="profile-item">
+            <div class="value">${data.age}</div>
+            <div class="label">Years Old</div>
+        </div>
+        <div class="profile-item">
+            <div class="value">${data.weight} lbs</div>
+            <div class="label">Current Weight</div>
+        </div>
+        <div class="profile-item">
+            <div class="value">${data.height}"</div>
+            <div class="label">Height</div>
+        </div>
+        <div class="profile-item">
+            <div class="value">${bmi}</div>
+            <div class="label">BMI (${bmiClass})</div>
+        </div>
+        <div class="profile-item">
+            <div class="value">${goalText[data.goal]}</div>
+            <div class="label">Goal</div>
+        </div>
+    `;
+}
+
+/**
+ * Generates nutritional numbers display
+ */
+function generateNutritionNumbers(bmr, tdee, calories, macros) {
+    return `
+        <div class="nutrition-item">
+            <div class="value">${Math.round(bmr)}</div>
+            <div class="unit">kcal</div>
+            <div class="label">Basal Metabolic Rate</div>
+        </div>
+        <div class="nutrition-item">
+            <div class="value">${Math.round(tdee)}</div>
+            <div class="unit">kcal</div>
+            <div class="label">Total Daily Expenditure</div>
+        </div>
+        <div class="nutrition-item">
+            <div class="value">${calories}</div>
+            <div class="unit">kcal</div>
+            <div class="label">Daily Calorie Target</div>
+        </div>
+        <div class="nutrition-item protein">
+            <div class="value">${macros.protein}g</div>
+            <div class="unit">protein</div>
+            <div class="label">${macros.proteinCalories} kcal</div>
+        </div>
+        <div class="nutrition-item carbs">
+            <div class="value">${macros.carbs}g</div>
+            <div class="unit">carbs</div>
+            <div class="label">${macros.carbCalories} kcal</div>
+        </div>
+        <div class="nutrition-item fat">
+            <div class="value">${macros.fat}g</div>
+            <div class="unit">fat</div>
+            <div class="label">${macros.fatCalories} kcal</div>
+        </div>
+    `;
+}
+
+/**
+ * Generates meal plan with dropdowns
+ */
+function generateMealPlan(goal, calories, numMeals) {
+    const plan = MEAL_PLANS[goal];
+    let meals = [...plan.meals];
+
+    // Adjust meals if needed
+    if (numMeals < 6) {
+        meals = meals.slice(0, numMeals);
+    }
+
+    // Recalculate percentages
+    const totalPercent = meals.reduce((acc, m) => acc + m.caloriePercent, 0);
+
+    // Store recipes for this goal
+    currentRecipes = RECIPES[goal];
+
+    let html = '';
+    meals.forEach((meal, index) => {
+        const adjustedPercent = meal.caloriePercent / totalPercent;
+        const mealCalories = Math.round(calories * adjustedPercent);
+        const recipes = currentRecipes[meal.type] || currentRecipes.snack;
+
+        html += `
+            <div class="meal-item" data-meal-index="${index}">
+                <div class="meal-header" onclick="toggleMealDropdown(${index})">
+                    <div class="meal-time">
+                        ${meal.time}
+                        <small>${meal.name}</small>
+                    </div>
+                    <div class="meal-content">
+                        <div class="meal-name">${meal.name}</div>
+                        <div class="meal-foods">Click to see 3 recipe suggestions</div>
+                    </div>
+                    <div class="meal-calories">${mealCalories} kcal</div>
+                    <div class="meal-toggle">▼</div>
+                </div>
+                <div class="meal-dropdown">
+                    <div class="meal-recipes">
+                        ${recipes.map(recipe => `
+                            <div class="recipe-suggestion" onclick="openRecipeModal('${recipe.id}')">
+                                <span class="recipe-suggestion-icon">${recipe.icon}</span>
+                                <div class="recipe-suggestion-info">
+                                    <div class="recipe-suggestion-name">${recipe.name}</div>
+                                    <div class="recipe-suggestion-meta">${recipe.calories} kcal • ${recipe.time}</div>
+                                </div>
+                                <span class="recipe-suggestion-arrow">→</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    return html;
+}
+
+/**
+ * Generates workout plan cards
+ */
+function generateWorkoutPlan(experience, goal) {
+    const workout = WORKOUTS[experience][goal];
+    currentWorkout = workout;
+    const userIsPremium = isPremium();
+
+    let html = `
+        <div class="workout-info" style="margin-bottom: 20px; padding: 20px; background: var(--background); border-radius: var(--radius); text-align: center;">
+            <p><strong>Recommended Frequency:</strong> ${workout.frequency}</p>
+            <p style="color: var(--text-secondary); margin-top: 5px;">${workout.description}</p>
+        </div>
+    `;
+
+    workout.split.forEach((day, index) => {
+        const previewExercises = day.exercises.slice(0, 3).map(e => e.name);
+        const lockedClass = userIsPremium ? '' : 'workout-preview-locked';
+
+        html += `
+            <div class="workout-day" onclick="openWorkoutModal(${index})">
+                <div class="workout-header ${day.color}">
+                    <h4>${day.day}</h4>
+                    <span class="workout-focus">${day.focus}</span>
+                </div>
+                <div class="workout-preview ${lockedClass}">
+                    <p>${day.exercises.length} exercises</p>
+                    <div class="workout-preview-exercises">
+                        ${previewExercises.map(e => `<span>${e}</span>`).join('')}
+                    </div>
+                </div>
+                <div class="workout-cta">
+                    <span>${userIsPremium ? 'View Full Workout' : 'Unlock Workout'}</span>
+                    <span>→</span>
+                </div>
+            </div>
+        `;
+    });
+
+    return html;
+}
+
+/**
+ * Generates tips section
+ */
+function generateTips(goal) {
+    const tips = TIPS[goal];
+    const goalText = {
+        'emagrecer': 'Weight Loss',
+        'manter': 'Maintenance',
+        'ganharMassa': 'Muscle Gain'
+    };
+
+    return `
+        <ul class="tips-list">
+            ${tips.map(tip => `<li><span>✓</span> ${tip}</li>`).join('')}
+        </ul>
+    `;
+}
+
+// ============================================
+// MODAL FUNCTIONS
+// ============================================
+
+/**
+ * Opens recipe modal
+ */
+function openRecipeModal(recipeId) {
+    // Check premium access
+    if (!isPremium()) {
+        if (!isLoggedIn()) {
+            openModal('loginModal');
+        } else {
+            openModal('premiumModal');
+        }
+        return;
+    }
+
+    // Find recipe in current recipes
+    let recipe = null;
+    for (const type in currentRecipes) {
+        const found = currentRecipes[type].find(r => r.id === recipeId);
+        if (found) {
+            recipe = found;
+            break;
+        }
+    }
+
+    if (!recipe) return;
+
+    const modalContent = document.getElementById('recipeModalContent');
+    modalContent.innerHTML = `
+        <div class="recipe-modal-header">
+            <h2>${recipe.icon} ${recipe.name}</h2>
+            <p>${recipe.type}</p>
+            <div class="recipe-modal-meta">
+                <span>⏱️ ${recipe.time}</span>
+                <span>👥 ${recipe.servings}</span>
+                <span>🔥 ${recipe.calories} kcal</span>
+            </div>
+        </div>
+        <div class="recipe-modal-body">
+            <div class="recipe-video">
+                <h3>📺 Video Tutorial</h3>
+                <div class="video-container">
+                    <iframe
+                        src="https://www.youtube.com/embed/${recipe.youtubeId}"
+                        title="${recipe.name} Tutorial"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+
+            <div class="recipe-details">
+                <div class="recipe-ingredients">
+                    <h3>📝 Ingredients</h3>
+                    <ul>
+                        ${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="recipe-instructions">
+                    <h3>👨‍🍳 Instructions</h3>
+                    <ol>
+                        ${recipe.instructions.map(step => `<li>${step}</li>`).join('')}
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-macros-grid">
+                <div class="macro-card calories">
+                    <div class="value">${recipe.calories}</div>
+                    <div class="label">Calories</div>
+                </div>
+                <div class="macro-card protein">
+                    <div class="value">${recipe.protein}g</div>
+                    <div class="label">Protein</div>
+                </div>
+                <div class="macro-card carbs">
+                    <div class="value">${recipe.carbs}g</div>
+                    <div class="label">Carbs</div>
+                </div>
+                <div class="macro-card fat">
+                    <div class="value">${recipe.fat}g</div>
+                    <div class="label">Fat</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    openModal('recipeModal');
+}
+
+/**
+ * Opens workout modal with animated SVG exercises and video demos
+ */
+function openWorkoutModal(workoutIndex) {
+    // Check premium access
+    if (!isPremium()) {
+        if (!isLoggedIn()) {
+            openModal('loginModal');
+        } else {
+            openModal('premiumModal');
+        }
+        return;
+    }
+
+    const day = currentWorkout.split[workoutIndex];
+
+    const modalContent = document.getElementById('workoutModalContent');
+    modalContent.innerHTML = `
+        <div class="workout-modal-header ${day.color}">
+            <h2>${day.day}</h2>
+            <p>${day.focus}</p>
+        </div>
+        <div class="workout-modal-body">
+            <p style="margin-bottom: 24px; color: var(--text-secondary);">
+                Click on each exercise to see the animated demonstration and muscles worked
+            </p>
+            <div class="exercise-list">
+                ${day.exercises.map((ex, index) => {
+                    const exerciseData = getExerciseSVG(ex.name);
+                    const gifUrl = typeof getExerciseGif === 'function' ? getExerciseGif(ex.name) : null;
+                    const musclesList = exerciseData.muscles.map(muscle => {
+                        const isPrimary = muscle === exerciseData.primaryMuscle;
+                        return `
+                            <div class="muscle-item ${isPrimary ? 'primary' : ''}">
+                                <div class="muscle-indicator"></div>
+                                <span class="muscle-name">${getMuscleDisplayName(muscle)}</span>
+                                ${isPrimary ? '<span class="muscle-badge">Primary</span>' : ''}
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Create animation display - video if available, otherwise SVG
+                    const animationDisplay = gifUrl ? `
+                        <div class="exercise-video-demo">
+                            <video autoplay loop muted playsinline class="exercise-demo-video">
+                                <source src="${gifUrl}" type="video/mp4">
+                                ${exerciseData.svg}
+                            </video>
+                        </div>
+                    ` : `
+                        <div class="exercise-svg-wrapper">
+                            ${exerciseData.svg}
+                        </div>
+                    `;
+
+                    return `
+                        <div class="exercise-card" data-exercise-index="${index}">
+                            <div class="exercise-card-header" onclick="toggleExerciseContent(this)">
+                                <div class="exercise-info">
+                                    <h4>${ex.name}</h4>
+                                    <span>Click to see animation & muscles</span>
+                                </div>
+                                <div class="exercise-sets-badge">${ex.sets}</div>
+                            </div>
+                            <div class="exercise-content">
+                                <div class="exercise-animation-container">
+                                    ${animationDisplay}
+                                    <div class="muscles-info">
+                                        <h5>Muscles Worked</h5>
+                                        <div class="muscle-list">
+                                            ${musclesList}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="exercise-video">
+                                    <h5>Video Tutorial</h5>
+                                    <div class="video-container">
+                                        <iframe
+                                            src="https://www.youtube.com/embed/${ex.youtubeId}"
+                                            title="${ex.name} Tutorial"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen>
+                                        </iframe>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    openModal('workoutModal');
+}
+
+/**
+ * Toggles exercise content visibility
+ */
+function toggleExerciseContent(element) {
+    const card = element.closest('.exercise-card');
+    card.classList.toggle('open');
+}
+
+/**
+ * Opens a modal
+ */
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Closes a modal
+ */
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+/**
+ * Toggles meal dropdown
+ */
+function toggleMealDropdown(index) {
+    const mealItem = document.querySelector(`.meal-item[data-meal-index="${index}"]`);
+    mealItem.classList.toggle('open');
+}
+
+/**
+ * Toggles exercise video
+ */
+function toggleExerciseVideo(element) {
+    const card = element.closest('.exercise-card');
+    card.classList.toggle('open');
+}
+
+// ============================================
+// HANDLERS
+// ============================================
+
+/**
+ * Handles form submission
+ */
+function handleFormSubmit(e) {
+    e.preventDefault();
+
+    // Collect form data
+    const formData = new FormData(form);
+    userData = {
+        name: formData.get('nome'),
+        age: parseInt(formData.get('idade')),
+        sex: formData.get('sexo'),
+        height: parseInt(formData.get('altura')),
+        weight: parseFloat(formData.get('peso')),
+        goalWeight: parseFloat(formData.get('pesoMeta')),
+        activityLevel: formData.get('nivelAtividade'),
+        gymFrequency: formData.get('frequenciaAcademia'),
+        mealsPerDay: parseInt(formData.get('refeicoesDia')),
+        workoutTime: formData.get('horarioTreino'),
+        goal: formData.get('objetivo'),
+        experience: formData.get('experiencia'),
+        restrictions: formData.getAll('restricoes')
+    };
+
+    // Calculate values
+    const bmr = calculateBMR(userData.weight, userData.height, userData.age, userData.sex);
+    const tdee = calculateTDEE(bmr, userData.activityLevel, userData.gymFrequency);
+    const calories = adjustCaloriesForGoal(tdee, userData.goal);
+    const macros = calculateMacros(calories, userData.goal, userData.weight);
+
+    // Generate content
+    document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
+    document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
+    document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
+    document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal);
+    document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
+
+    // Show results
+    formSection.style.display = 'none';
+    resultsSection.classList.remove('hidden');
+
+    // Update premium UI
+    if (typeof updatePremiumUI === 'function') {
+        updatePremiumUI();
+    }
+
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Resets form and returns to start
+ */
+function resetForm() {
+    form.reset();
+    resultsSection.classList.add('hidden');
+    formSection.style.display = 'block';
+
+    // Scroll to form
+    document.getElementById('form-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+// Smooth scroll for internal links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+});
+
+// Visual validation in real-time
+const inputs = form.querySelectorAll('input, select');
+inputs.forEach(input => {
+    input.addEventListener('blur', function() {
+        if (this.value && this.checkValidity()) {
+            this.style.borderColor = 'var(--primary-color)';
+        }
+    });
+
+    input.addEventListener('input', function() {
+        this.style.borderColor = 'var(--border-color)';
+    });
+});
+
+console.log('NutriPlan loaded successfully! 🥗');
