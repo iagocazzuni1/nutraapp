@@ -148,11 +148,28 @@ async function signInWithGoogle() {
         updatePremiumUI();
         updatePlanStatusUI();
 
-        // Process pending form data if exists
-        if (typeof processPendingFormData === 'function') {
-            processPendingFormData();
-        } else if (typeof loadExistingPlan === 'function') {
-            loadExistingPlan();
+        // Check for pending form data
+        const pendingData = getPendingFormData();
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+        if (pendingData) {
+            // Clear pending data
+            clearPendingFormData();
+            // Generate plan and redirect to my-plan
+            if (typeof generateAndDisplayResults === 'function') {
+                generateAndDisplayResults(pendingData);
+            }
+        } else if (currentPage === 'planner.html') {
+            // No pending data on planner - check if user has existing plan
+            const existingPlan = loadUserPlan();
+            if (existingPlan && isPlanLocked()) {
+                window.location.href = 'my-plan.html';
+            }
+        } else if (currentPage === 'my-plan.html') {
+            // On my-plan page, load existing plan
+            if (typeof loadExistingPlan === 'function') {
+                loadExistingPlan();
+            }
         }
 
         return { success: true, user: userData };
@@ -665,11 +682,31 @@ if (loginFormEl) {
             updatePlanStatusUI();
             this.reset();
 
-            // Process pending form data if exists
-            if (typeof processPendingFormData === 'function') {
-                processPendingFormData();
-            } else if (typeof loadExistingPlan === 'function') {
-                loadExistingPlan();
+            // Check for pending form data
+            const pendingData = getPendingFormData();
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+            if (pendingData) {
+                // Clear pending data
+                clearPendingFormData();
+                // Generate plan and redirect to my-plan
+                if (typeof generateAndDisplayResults === 'function') {
+                    generateAndDisplayResults(pendingData);
+                }
+            } else if (currentPage === 'planner.html') {
+                // No pending data on planner - check if user has existing plan
+                if (typeof loadUserPlan === 'function') {
+                    const existingPlan = loadUserPlan();
+                    if (existingPlan && typeof isPlanLocked === 'function' && isPlanLocked()) {
+                        // User has active plan, redirect to my-plan
+                        window.location.href = 'my-plan.html';
+                    }
+                }
+            } else if (currentPage === 'my-plan.html') {
+                // On my-plan page, load existing plan
+                if (typeof loadExistingPlan === 'function') {
+                    loadExistingPlan();
+                }
             }
         } else {
             errorDiv.textContent = result.message;
@@ -706,10 +743,18 @@ if (registerFormEl) {
             updatePlanStatusUI();
             this.reset();
 
-            // Process pending form data if exists (don't show welcome message if generating plan)
-            if (typeof processPendingFormData === 'function' && getPendingFormData()) {
-                processPendingFormData();
+            // Check for pending form data
+            const pendingData = getPendingFormData();
+
+            if (pendingData) {
+                // Clear pending data
+                clearPendingFormData();
+                // Generate plan and redirect to my-plan (no welcome message needed)
+                if (typeof generateAndDisplayResults === 'function') {
+                    generateAndDisplayResults(pendingData);
+                }
             } else {
+                // No pending data - show welcome message
                 alert('Account created successfully! Welcome to NutriPlan!');
             }
         } else {
@@ -739,12 +784,36 @@ document.addEventListener('DOMContentLoaded', function() {
             updatePremiumUI();
             updatePlanStatusUI();
 
-            // If on my-plan page and user just logged in, reload to show plan
+            // Handle page-specific auth state changes
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-            if (currentPage === 'my-plan.html' && user) {
-                // Reload to trigger initMyPlanPage with logged in user
-                if (typeof initMyPlanPage === 'function') {
-                    initMyPlanPage();
+
+            if (currentPage === 'my-plan.html') {
+                if (user) {
+                    // User is logged in - initialize my-plan page
+                    if (typeof initMyPlanPage === 'function') {
+                        initMyPlanPage();
+                    }
+                } else {
+                    // User logged out - show no plan message
+                    const noPlanMessage = document.getElementById('noPlanMessage');
+                    const planContent = document.getElementById('planContent');
+                    if (noPlanMessage) noPlanMessage.classList.remove('hidden');
+                    if (planContent) planContent.classList.add('hidden');
+                }
+            } else if (currentPage === 'planner.html') {
+                // On planner page, check if user has pending data or active plan
+                if (user) {
+                    // Check for pending form data
+                    const pendingData = getPendingFormData();
+                    if (pendingData) {
+                        clearPendingFormData();
+                        if (typeof generateAndDisplayResults === 'function') {
+                            generateAndDisplayResults(pendingData);
+                        }
+                    } else if (typeof isPlanLocked === 'function' && isPlanLocked()) {
+                        // User has active plan, redirect to my-plan
+                        window.location.href = 'my-plan.html';
+                    }
                 }
             }
         });

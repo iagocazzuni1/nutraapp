@@ -900,9 +900,11 @@ function showAccountPrompt() {
 
 /**
  * Processes pending form data after user logs in or registers
+ * Note: This function is kept for backwards compatibility but the main logic
+ * has been moved to the login/register handlers in auth.js for better control
  */
 function processPendingFormData() {
-    if (typeof getPendingFormData !== 'function') return;
+    if (typeof getPendingFormData !== 'function') return false;
 
     const pendingData = getPendingFormData();
     if (!pendingData) {
@@ -910,7 +912,7 @@ function processPendingFormData() {
         if (typeof loadExistingPlan === 'function') {
             loadExistingPlan();
         }
-        return;
+        return false;
     }
 
     // Clear pending data
@@ -926,6 +928,7 @@ function processPendingFormData() {
 
     // Generate and display results with the pending data
     generateAndDisplayResults(pendingData);
+    return true;
 }
 
 /**
@@ -1121,9 +1124,22 @@ function initMyPlanPage() {
     // Check if user is logged in
     if (typeof isLoggedIn !== 'function' || !isLoggedIn()) {
         // Show no plan message and prompt to login/create plan
-        if (noPlanMessage) noPlanMessage.classList.remove('hidden');
-        if (planContent) planContent.classList.add('hidden');
+        showNoPlanMessage();
         return;
+    }
+
+    // First, check if there's pending form data to process
+    if (typeof getPendingFormData === 'function') {
+        const pendingData = getPendingFormData();
+        if (pendingData) {
+            // Clear pending data first to avoid loops
+            if (typeof clearPendingFormData === 'function') {
+                clearPendingFormData();
+            }
+            // Generate and display results with the pending data
+            generateAndDisplayResults(pendingData);
+            return;
+        }
     }
 
     // Try to load existing plan
@@ -1131,9 +1147,16 @@ function initMyPlanPage() {
 
     if (!planLoaded) {
         // No active plan, show no plan message
-        if (noPlanMessage) noPlanMessage.classList.remove('hidden');
-        if (planContent) planContent.classList.add('hidden');
+        showNoPlanMessage();
     }
+}
+
+/**
+ * Shows the no plan message and hides plan content
+ */
+function showNoPlanMessage() {
+    if (noPlanMessage) noPlanMessage.classList.remove('hidden');
+    if (planContent) planContent.classList.add('hidden');
 }
 
 /**
@@ -1146,7 +1169,7 @@ function initLandingPage() {
 
 // Page-specific initialization
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait a bit for auth.js to initialize
+    // Wait for auth.js and Firebase to initialize (increased timeout)
     setTimeout(() => {
         // Initialize based on current page
         if (currentPage === 'planner.html') {
@@ -1161,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof updatePlanStatusUI === 'function') {
             updatePlanStatusUI();
         }
-    }, 100);
+    }, 500); // Increased from 100ms to give Firebase time to initialize
 });
 
 console.log('NutriPlan loaded successfully! 🥗');

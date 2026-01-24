@@ -28,31 +28,34 @@ npx serve -l 8080
 
 | Page | Purpose |
 |------|---------|
-| `index.html` | Landing page (hero, features, testimonials, CTA) |
+| `index.html` | Landing page with login/register modals |
 | `planner.html` | Form page for creating personalized plans |
 | `my-plan.html` | Results page for viewing saved plans |
 
 **Navigation Flow:**
 ```
 index.html → "Get Your Plan" → planner.html
-planner.html → Submit → my-plan.html
+planner.html → Submit (logged in) → my-plan.html
+planner.html → Submit (not logged in) → login modal → my-plan.html
 my-plan.html → "Start Over" → planner.html
 ```
 
 ### Key JavaScript Files
 
-- **app.js** - Core logic: calculations, form handling, content generation. Detects current page via `currentPage` variable and calls appropriate init function (`initPlannerPage()`, `initMyPlanPage()`, `initLandingPage()`).
-- **auth.js** - Authentication system with Firebase/localStorage hybrid. Handles login, registration, premium status, plan persistence.
+- **app.js** - Core logic: calculations, form handling, content generation. Detects current page via `currentPage` variable and calls appropriate init function (`initPlannerPage()`, `initMyPlanPage()`, `initLandingPage()`). Uses 500ms timeout on DOMContentLoaded to wait for Firebase.
+- **auth.js** - Authentication system with Firebase/localStorage hybrid. Handles login, registration, premium status, plan persistence. Contains `onAuthStateChanged` listener that handles page-specific auth state updates.
 - **data.js** - Static database: recipes, meal plans, workouts, tips, supplements.
 - **exercises.js** - SVG anatomical templates with muscle highlighting for exercise demos.
+- **exercise-gifs.js** - Maps exercise names to video demonstration URLs.
 
 ### Data Flow
 
 1. User fills form in `planner.html`
 2. If not logged in: data saved to `nutriplan_pending_form`, login modal shown
-3. After auth, `app.js` calculates BMR → TDEE → adjusted calories → macros
-4. Plan saved to localStorage (`nutriplan_user_plan_{userId}`), redirects to `my-plan.html`
-5. `my-plan.html` loads saved plan via `loadExistingPlan()`
+3. After auth (login/register/Google): pending data retrieved, plan generated
+4. `app.js` calculates BMR → TDEE → adjusted calories → macros
+5. Plan saved to localStorage (`nutriplan_user_plan_{userId}`), redirects to `my-plan.html`
+6. `my-plan.html` calls `initMyPlanPage()` which checks for pending data first, then loads existing plan via `loadExistingPlan()`
 
 ### Meal Plan Selection Logic
 
@@ -96,6 +99,27 @@ Content gating via `isPremium()` check in `openRecipeModal()` and `openWorkoutMo
 - `nutriplan_user_plan_{userId}` - User's saved plan
 - `nutriplan_pending_form` - Temporary form data before account creation
 
+### Authentication Flow (Critical)
+
+The auth flow across pages requires careful timing due to Firebase async initialization:
+
+1. **Login modal** exists on all 3 pages (index, planner, my-plan)
+2. **onAuthStateChanged** in auth.js handles state changes per page:
+   - `my-plan.html`: Calls `initMyPlanPage()` on login, shows "no plan" on logout
+   - `planner.html`: Processes pending data or redirects to my-plan if user has active plan
+3. **Pending form data** flow: Form submit → save to `nutriplan_pending_form` → show login modal → auth handler retrieves pending data → `generateAndDisplayResults()` → redirect to my-plan
+
+### Key Functions Cross-Reference
+
+| Function | File | Purpose |
+|----------|------|---------|
+| `generateAndDisplayResults(data)` | app.js | Calculates plan, saves it, redirects to my-plan |
+| `initMyPlanPage()` | app.js | Checks pending data first, then loads existing plan |
+| `loadExistingPlan()` | app.js | Loads saved plan and renders it |
+| `saveUserPlan(plan)` | auth.js | Persists plan to localStorage |
+| `getPendingFormData()` | auth.js | Retrieves temp form data |
+| `onAuthStateChanged` | auth.js | Firebase listener, triggers page init |
+
 ## Testing
 
 ### Test Premium Features (browser console)
@@ -116,10 +140,42 @@ localStorage.setItem('nutriplan_user_plan_' + getCurrentUser().id, JSON.stringif
 location.reload();
 ```
 
+### Clear All Data (browser console)
+
+```javascript
+localStorage.clear();
+location.reload();
+```
+
+### Debug Auth State
+
+```javascript
+console.log('Logged in:', isLoggedIn());
+console.log('Current user:', getCurrentUser());
+console.log('Pending form:', getPendingFormData());
+console.log('User plan:', loadUserPlan());
+console.log('Plan locked:', isPlanLocked());
+```
+
 ## Configuration
 
 - **firebase-config.js** - Replace placeholder values with your Firebase project config
 - **stripe-config.js** - Set `STRIPE_PAYMENT_LINK` to your Stripe payment link URL
+
+## Common Issues
+
+### "Plan not loading after login"
+- Check that `onAuthStateChanged` is calling `initMyPlanPage()` on my-plan.html
+- Verify 500ms timeout in app.js DOMContentLoaded allows Firebase to init
+- Check browser console for pending form data with `getPendingFormData()`
+
+### "Login redirects instead of opening modal"
+- Ensure the page has the `#loginModal` element (all 3 pages should have it)
+- Check `updateNavAuth()` in auth.js - it checks for modal existence
+
+### "Plan generated but not saved"
+- Verify `isLoggedIn()` returns true before `saveUserPlan()` is called
+- Check `generateAndDisplayResults()` saves plan before redirecting
 
 ## Deployment
 
