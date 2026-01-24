@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Plan - NutriPlan</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🥗</span>
+                <span class="logo-text">NutriPlan</span>
+            </a>
+            <div class="nav-auth" id="navAuth">
+                <!-- Will be populated by JS -->
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Results Section -->
+        <section id="resultados" class="results-section">
+            <div class="container">
+                <!-- Plan Status Banner -->
+                <div id="planStatusBanner" class="plan-status-banner hidden">
+                    <span class="plan-status-icon">✓</span>
+                    <span class="plan-status-text">
+                        <strong>Plan Active</strong> - Loading...
+                    </span>
+                </div>
+
+                <!-- No Plan Message (shown when user has no plan) -->
+                <div id="noPlanMessage" class="no-plan-message hidden">
+                    <div class="no-plan-icon">📋</div>
+                    <h2>You Don't Have a Plan Yet</h2>
+                    <p>Create your personalized meal and workout plan to start your transformation journey.</p>
+                    <a href="planner.html" class="btn-primary">
+                        Create Your Plan
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                </div>
+
+                <!-- Plan Content (shown when user has a plan) -->
+                <div id="planContent" class="hidden">
+                    <!-- Profile Summary -->
+                    <div class="result-card profile-summary">
+                        <h2>Your Profile</h2>
+                        <div id="profileSummary" class="profile-grid"></div>
+                    </div>
+
+                    <!-- Nutritional Calculations -->
+                    <div class="result-card nutrition-calc">
+                        <h2>Your Numbers</h2>
+                        <div id="nutritionNumbers" class="nutrition-grid"></div>
+                    </div>
+
+                    <!-- Meal Plan (Premium) -->
+                    <div class="result-card meal-plan">
+                        <div class="card-header-premium">
+                            <h2>Meal Plan</h2>
+                            <span class="premium-badge" id="mealPlanBadge">🔒 Premium</span>
+                        </div>
+                        <p class="plan-description">Based on your goal and caloric needs. Click on each meal to see recipe suggestions.</p>
+                        <div id="mealPlan" class="meals-container"></div>
+                    </div>
+
+                    <!-- Workout Plan (Premium) -->
+                    <div class="result-card workout-plan">
+                        <div class="card-header-premium">
+                            <h2>Workout Plan</h2>
+                            <span class="premium-badge" id="workoutPlanBadge">🔒 Premium</span>
+                        </div>
+                        <p class="plan-description">Tailored to your experience level and goals. Click on each workout to see exercises and video tutorials.</p>
+                        <div id="workoutPlan" class="workout-container"></div>
+                    </div>
+
+                    <!-- Supplements Section -->
+                    <div class="result-card supplements-section">
+                        <h2>Recommended Supplements</h2>
+                        <div id="supplementsSection"></div>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="result-card tips-card">
+                        <h2>Tips For Your Goal</h2>
+                        <div id="tipsSection"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="plan-actions">
+                        <a href="planner.html" id="btnRefazer" class="btn-secondary">
+                            Start Over
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content modal-auth">
+            <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                    <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <h2>Welcome Back!</h2>
+                    <p>Sign in to access your personalized plans</p>
+
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="Your password" required>
+                    </div>
+
+                    <div id="loginError" class="auth-error"></div>
+
+                    <button type="submit" class="btn-auth">Sign In</button>
+
+                    <div class="auth-divider">
+                        <span>or</span>
+                    </div>
+
+                    <button type="button" class="btn-google" onclick="signInWithGoogle()">
+                        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form hidden">
+                    <h2>Create Account</h2>
+                    <p>Join NutriPlan and start your transformation</p>
+
+                    <div class="form-group">
+                        <label for="registerName">Full Name</label>
+                        <input type="text" id="registerName" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" placeholder="Min. 6 characters" minlength="6" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerConfirm">Confirm Password</label>
+                        <input type="password" id="registerConfirm" placeholder="Confirm password" required>
+                    </div>
+
+                    <div id="registerError" class="auth-error"></div>
+
+                    <button type="submit" class="btn-auth">Create Account</button>
+
+                    <div class="auth-divider">
+                        <span>or</span>
+                    </div>
+
+                    <button type="button" class="btn-google" onclick="signInWithGoogle()">
+                        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Upgrade Modal -->
+    <div id="premiumModal" class="modal">
+        <div class="modal-content modal-premium">
+            <button class="modal-close" onclick="closeModal('premiumModal')">&times;</button>
+            <div class="premium-container">
+                <div class="premium-icon">👑</div>
+                <h2>Unlock Premium Content</h2>
+                <p>Get full access to personalized recipes, detailed workout plans, and video tutorials!</p>
+
+                <div class="premium-features">
+                    <div class="premium-feature">
+                        <span class="feature-icon">🍽️</span>
+                        <div>
+                            <strong>36+ Recipes</strong>
+                            <p>Complete ingredients, instructions & videos</p>
+                        </div>
+                    </div>
+                    <div class="premium-feature">
+                        <span class="feature-icon">💪</span>
+                        <div>
+                            <strong>9 Workout Plans</strong>
+                            <p>Personalized by goal & experience level</p>
+                        </div>
+                    </div>
+                    <div class="premium-feature">
+                        <span class="feature-icon">🎬</span>
+                        <div>
+                            <strong>Video Tutorials</strong>
+                            <p>Step-by-step guidance for every exercise</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-pricing">
+                    <div class="price-tag">
+                        <span class="price-old">$19.99</span>
+                        <span class="price-new">$5</span>
+                        <span class="price-period">/month</span>
+                    </div>
+                    <p class="price-promo">🎉 Limited time offer - 75% OFF!</p>
+                </div>
+
+                <button class="btn-premium" onclick="upgradeToPremium()">
+                    Upgrade Now
+                </button>
+
+                <p class="premium-note">Cancel anytime. 30-day money-back guarantee.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipe Modal -->
+    <div id="recipeModal" class="modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" onclick="closeModal('recipeModal')">&times;</button>
+            <div id="recipeModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Workout Modal -->
+    <div id="workoutModal" class="modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" onclick="closeModal('workoutModal')">&times;</button>
+            <div id="workoutModalContent"></div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>NutriPlan &copy; 2025 - Your personalized nutrition and workout plan</p>
+            <p class="disclaimer">This plan is general guidance. Always consult a nutritionist and personal trainer.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK (optional - for production auth) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="stripe-config.js"></script>
+    <script src="data.js"></script>
+    <script src="exercises.js"></script>
+    <script src="exercise-gifs.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

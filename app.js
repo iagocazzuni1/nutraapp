@@ -1,12 +1,18 @@
 // ============================================
 // APP.JS - Main Logic for NutriPlan
+// Multi-page support: index.html, planner.html, my-plan.html
 // ============================================
 
-// DOM Elements
+// Detect current page
+const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+// DOM Elements (get them conditionally based on page)
 const form = document.getElementById('nutriForm');
 const formSection = document.querySelector('.form-section');
 const resultsSection = document.getElementById('resultados');
 const btnRefazer = document.getElementById('btnRefazer');
+const planContent = document.getElementById('planContent');
+const noPlanMessage = document.getElementById('noPlanMessage');
 
 // Global state to store user data
 let userData = {};
@@ -14,9 +20,18 @@ let currentRecipes = {};
 let currentWorkout = {};
 let calculatedValues = {}; // Store BMR, TDEE, calories, macros
 
-// Event Listeners
-form.addEventListener('submit', handleFormSubmit);
-btnRefazer.addEventListener('click', resetForm);
+// Event Listeners (conditional based on page)
+if (form) {
+    form.addEventListener('submit', handleFormSubmit);
+}
+if (btnRefazer) {
+    // On my-plan.html, btnRefazer is a link, so we handle it differently
+    if (currentPage === 'my-plan.html') {
+        btnRefazer.addEventListener('click', handleStartOver);
+    } else {
+        btnRefazer.addEventListener('click', resetForm);
+    }
+}
 
 // Close modal when clicking outside
 document.querySelectorAll('.modal').forEach(modal => {
@@ -256,16 +271,57 @@ function generateNutritionNumbers(bmr, tdee, calories, macros) {
 }
 
 /**
+ * Selects meals prioritizing main meals (breakfast, lunch, dinner) over snacks
+ * @param {Array} allMeals - All available meals from the plan
+ * @param {number} numMeals - Number of meals user wants
+ * @returns {Array} - Selected meals sorted by time
+ */
+function selectMeals(allMeals, numMeals) {
+    // Separate main meals from snacks
+    const mainMeals = allMeals.filter(m => ['breakfast', 'lunch', 'dinner'].includes(m.type));
+    const snacks = allMeals.filter(m => m.type === 'snack');
+
+    let selected = [];
+
+    if (numMeals >= 3) {
+        // Include all main meals (breakfast, lunch, dinner)
+        selected = [...mainMeals];
+
+        // If user wants more than 3 meals, add snacks
+        if (numMeals > 3) {
+            const snacksNeeded = numMeals - 3;
+            selected.push(...snacks.slice(0, snacksNeeded));
+        }
+    } else if (numMeals === 2) {
+        // 2 meals: breakfast + dinner (skip lunch for intermittent fasting style)
+        selected = mainMeals.filter(m => m.type !== 'lunch');
+    } else if (numMeals === 1) {
+        // 1 meal: dinner only (OMAD style)
+        selected = mainMeals.filter(m => m.type === 'dinner');
+    }
+
+    // Sort by time (parse hour from time string like "7:00 AM")
+    return selected.sort((a, b) => {
+        const parseTime = (timeStr) => {
+            const [time, period] = timeStr.split(' ');
+            let [hours, minutes] = time.split(':').map(Number);
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12) hours = 0;
+            return hours * 60 + minutes;
+        };
+        return parseTime(a.time) - parseTime(b.time);
+    });
+}
+
+/**
  * Generates meal plan with dropdowns
  */
 function generateMealPlan(goal, calories, numMeals) {
     const plan = MEAL_PLANS[goal];
     let meals = [...plan.meals];
 
-    // Adjust meals if needed
-    if (numMeals < 6) {
-        meals = meals.slice(0, numMeals);
-    }
+    // Use smart meal selection that prioritizes main meals
+    meals = selectMeals(meals, numMeals);
 
     // Recalculate percentages
     const totalPercent = meals.reduce((acc, m) => acc + m.caloriePercent, 0);
@@ -315,21 +371,95 @@ function generateMealPlan(goal, calories, numMeals) {
 }
 
 /**
- * Generates workout plan cards
+ * Generates message for users who don't workout
  */
-function generateWorkoutPlan(experience, goal) {
+function generateNoWorkoutMessage() {
+    return `
+        <div class="no-workout-message">
+            <div class="no-workout-icon">🏃</div>
+            <h3>Stay Active Without the Gym</h3>
+            <p>Even without gym workouts, you can stay healthy and support your goals with:</p>
+            <ul class="no-workout-tips">
+                <li><span>🚶</span> Daily walks (30+ minutes)</li>
+                <li><span>🏠</span> Bodyweight exercises at home</li>
+                <li><span>🚴</span> Active hobbies (swimming, cycling, hiking)</li>
+                <li><span>🧘</span> Stretching and mobility work</li>
+                <li><span>🎯</span> Focus on your nutrition plan for best results</li>
+            </ul>
+        </div>
+    `;
+}
+
+/**
+ * Gets the number of workout days based on gym frequency
+ * @param {string} gymFrequency - Frequency string ('0', '1-2', '3-4', '5-6', '7')
+ * @returns {number} - Number of workout days to show
+ */
+function getWorkoutDaysForFrequency(gymFrequency) {
+    switch (gymFrequency) {
+        case '0': return 0;
+        case '1-2': return 2;
+        case '3-4': return 3;
+        case '5-6': return 4;
+        case '7': return 4; // Max 4 different workouts (can repeat)
+        default: return 4;
+    }
+}
+
+/**
+ * Gets frequency description text
+ */
+function getFrequencyDescription(gymFrequency, numDays) {
+    const descriptions = {
+        '0': { freq: 'No gym workouts', desc: 'Focus on nutrition and daily activity' },
+        '1-2': { freq: '2x per week', desc: 'Full body workouts for maximum efficiency' },
+        '3-4': { freq: '3x per week', desc: 'Push/Pull/Legs split for balanced development' },
+        '5-6': { freq: '4-5x per week', desc: 'Upper/Lower split with targeted muscle groups' },
+        '7': { freq: '6x per week', desc: 'High frequency training with adequate recovery' }
+    };
+    return descriptions[gymFrequency] || descriptions['3-4'];
+}
+
+/**
+ * Generates workout plan cards
+ * @param {string} experience - User experience level
+ * @param {string} goal - User goal
+ * @param {string} gymFrequency - Gym frequency ('0', '1-2', '3-4', '5-6', '7')
+ */
+function generateWorkoutPlan(experience, goal, gymFrequency = '3-4') {
+    // Handle no workout case
+    if (gymFrequency === '0') {
+        currentWorkout = null;
+        return generateNoWorkoutMessage();
+    }
+
     const workout = WORKOUTS[experience][goal];
     currentWorkout = workout;
     const userIsPremium = isPremium();
 
+    // Get number of workout days based on frequency
+    const numDays = getWorkoutDaysForFrequency(gymFrequency);
+    const freqInfo = getFrequencyDescription(gymFrequency, numDays);
+
+    // Select the appropriate number of workout days
+    const selectedDays = workout.split.slice(0, numDays);
+
+    // Update currentWorkout with only selected days for modal access
+    currentWorkout = {
+        ...workout,
+        frequency: freqInfo.freq,
+        description: freqInfo.desc,
+        split: selectedDays
+    };
+
     let html = `
         <div class="workout-info" style="margin-bottom: 20px; padding: 20px; background: var(--background); border-radius: var(--radius); text-align: center;">
-            <p><strong>Recommended Frequency:</strong> ${workout.frequency}</p>
-            <p style="color: var(--text-secondary); margin-top: 5px;">${workout.description}</p>
+            <p><strong>Recommended Frequency:</strong> ${freqInfo.freq}</p>
+            <p style="color: var(--text-secondary); margin-top: 5px;">${freqInfo.desc}</p>
         </div>
     `;
 
-    workout.split.forEach((day, index) => {
+    selectedDays.forEach((day, index) => {
         const previewExercises = day.exercises.slice(0, 3).map(e => e.name);
         const lockedClass = userIsPremium ? '' : 'workout-preview-locked';
 
@@ -455,20 +585,14 @@ function openRecipeModal(recipeId) {
             </div>
         </div>
         <div class="recipe-modal-body">
-            <div class="recipe-video">
-                <h3>📺 Video Tutorial</h3>
-                <div class="video-container">
-                    <iframe
-                        src="https://www.youtube.com/embed/${recipe.youtubeId}"
-                        title="${recipe.name} Tutorial"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen
-                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    </iframe>
-                    <div class="video-fallback-message" style="display:none;">
-                        <p>Video unavailable. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(recipe.name + ' recipe')}" target="_blank" rel="noopener">Search on YouTube</a></p>
-                    </div>
-                </div>
+            <div class="recipe-video-search">
+                <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(recipe.name + ' recipe')}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn-youtube-search">
+                    <span class="youtube-icon">▶</span>
+                    Search "${recipe.name}" on YouTube
+                </a>
             </div>
 
             <div class="recipe-details">
@@ -730,6 +854,86 @@ function handleFormSubmit(e) {
         planDuration: planDuration
     };
 
+    // Check if user is logged in - if not, save data and show account prompt
+    if (typeof isLoggedIn === 'function' && !isLoggedIn()) {
+        if (typeof savePendingFormData === 'function') {
+            savePendingFormData(userData);
+        }
+        showAccountPrompt();
+        return;
+    }
+
+    // User is logged in - generate and display results
+    generateAndDisplayResults(userData);
+}
+
+/**
+ * Shows modal prompting user to create account to see their plan
+ */
+function showAccountPrompt() {
+    // Update the login modal to show custom message
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    // Add a custom message above the forms if not already present
+    let promptMessage = document.getElementById('accountPromptMessage');
+    if (!promptMessage) {
+        promptMessage = document.createElement('div');
+        promptMessage.id = 'accountPromptMessage';
+        promptMessage.className = 'account-prompt-message';
+        promptMessage.innerHTML = `
+            <div class="prompt-icon">🎉</div>
+            <h3>Your Plan is Ready!</h3>
+            <p>Create a free account or sign in to view your personalized meal and workout plan.</p>
+        `;
+
+        const authContainer = document.querySelector('.auth-container');
+        if (authContainer) {
+            authContainer.insertBefore(promptMessage, authContainer.firstChild);
+        }
+    }
+
+    // Show the login modal with register tab active
+    openModal('loginModal');
+    switchAuthTab('register');
+}
+
+/**
+ * Processes pending form data after user logs in or registers
+ */
+function processPendingFormData() {
+    if (typeof getPendingFormData !== 'function') return;
+
+    const pendingData = getPendingFormData();
+    if (!pendingData) {
+        // No pending data, try to load existing plan
+        if (typeof loadExistingPlan === 'function') {
+            loadExistingPlan();
+        }
+        return;
+    }
+
+    // Clear pending data
+    if (typeof clearPendingFormData === 'function') {
+        clearPendingFormData();
+    }
+
+    // Remove the prompt message if it exists
+    const promptMessage = document.getElementById('accountPromptMessage');
+    if (promptMessage) {
+        promptMessage.remove();
+    }
+
+    // Generate and display results with the pending data
+    generateAndDisplayResults(pendingData);
+}
+
+/**
+ * Generates and displays results from user data
+ */
+function generateAndDisplayResults(data) {
+    userData = data;
+
     // Calculate values
     const bmr = calculateBMR(userData.weight, userData.height, userData.age, userData.sex);
     const tdee = calculateTDEE(bmr, userData.activityLevel, userData.gymFrequency);
@@ -739,26 +943,41 @@ function handleFormSubmit(e) {
     // Store calculated values globally
     calculatedValues = { bmr, tdee, calories, macros };
 
-    // Generate content
-    document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
-    document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
-    document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
-    document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal);
-    document.getElementById('supplementsSection').innerHTML = generateSupplementsSection(userData.goal);
-    document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
-
-    // Show results
-    formSection.style.display = 'none';
-    resultsSection.classList.remove('hidden');
-
     // Save plan if user is logged in
     if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof saveUserPlan === 'function') {
         saveUserPlan({
             userData: userData,
             calculations: calculatedValues,
-            planDuration: planDuration
+            planDuration: userData.planDuration || 30
         });
     }
+
+    // If on planner page, redirect to my-plan page
+    if (currentPage === 'planner.html') {
+        window.location.href = 'my-plan.html';
+        return;
+    }
+
+    // Generate content (for my-plan page)
+    renderPlanContent(userData, calculatedValues);
+}
+
+/**
+ * Renders plan content to the page
+ */
+function renderPlanContent(userData, calculations) {
+    const { bmr, tdee, calories, macros } = calculations;
+
+    document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
+    document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
+    document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
+    document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal, userData.gymFrequency);
+    document.getElementById('supplementsSection').innerHTML = generateSupplementsSection(userData.goal);
+    document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
+
+    // Show plan content, hide no plan message
+    if (planContent) planContent.classList.remove('hidden');
+    if (noPlanMessage) noPlanMessage.classList.add('hidden');
 
     // Update premium UI
     if (typeof updatePremiumUI === 'function') {
@@ -769,9 +988,6 @@ function handleFormSubmit(e) {
     if (typeof updatePlanStatusUI === 'function') {
         updatePlanStatusUI();
     }
-
-    // Scroll to results
-    resultsSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 /**
@@ -785,52 +1001,61 @@ function resetForm() {
         return;
     }
 
-    form.reset();
-    resultsSection.classList.add('hidden');
-    formSection.style.display = 'block';
+    if (form) form.reset();
+    if (resultsSection) resultsSection.classList.add('hidden');
+    if (formSection) formSection.style.display = 'block';
 
     // Scroll to form
-    document.getElementById('form-section').scrollIntoView({ behavior: 'smooth' });
+    const formSectionEl = document.getElementById('form-section');
+    if (formSectionEl) {
+        formSectionEl.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+/**
+ * Handles "Start Over" button click on my-plan page
+ */
+function handleStartOver(e) {
+    // Check if plan is locked
+    if (typeof isPlanLocked === 'function' && isPlanLocked()) {
+        e.preventDefault();
+        const daysRemaining = typeof getPlanDaysRemaining === 'function' ? getPlanDaysRemaining() : 0;
+        alert(`Your plan is still active! You have ${daysRemaining} day(s) remaining. You cannot create a new plan until your current plan expires.`);
+        return;
+    }
+    // Allow the link to navigate to planner.html
+}
+
+/**
+ * Shows the user's saved plan (called from My Plan button)
+ */
+function showMyPlan() {
+    // Redirect to my-plan page
+    window.location.href = 'my-plan.html';
 }
 
 /**
  * Loads existing plan from localStorage and displays it
+ * @returns {boolean} - True if plan was loaded, false otherwise
  */
 function loadExistingPlan() {
-    if (typeof loadUserPlan !== 'function') return;
+    if (typeof loadUserPlan !== 'function') return false;
 
     const plan = loadUserPlan();
-    if (!plan || !plan.userData || !plan.calculations) return;
+    if (!plan || !plan.userData || !plan.calculations) return false;
 
     // Check if plan is still active
     const status = typeof getPlanStatus === 'function' ? getPlanStatus() : { isActive: false };
-    if (!status.isActive) return;
+    if (!status.isActive) return false;
 
     // Restore userData and calculations
     userData = plan.userData;
     calculatedValues = plan.calculations;
 
-    const { bmr, tdee, calories, macros } = calculatedValues;
+    // Render the plan content
+    renderPlanContent(userData, calculatedValues);
 
-    // Regenerate content with saved data
-    document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
-    document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
-    document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
-    document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal);
-    document.getElementById('supplementsSection').innerHTML = generateSupplementsSection(userData.goal);
-    document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
-
-    // Show results
-    formSection.style.display = 'none';
-    resultsSection.classList.remove('hidden');
-
-    // Update UI
-    if (typeof updatePremiumUI === 'function') {
-        updatePremiumUI();
-    }
-    if (typeof updatePlanStatusUI === 'function') {
-        updatePlanStatusUI();
-    }
+    return true;
 }
 
 // ============================================
@@ -848,27 +1073,91 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Visual validation in real-time
-const inputs = form.querySelectorAll('input, select');
-inputs.forEach(input => {
-    input.addEventListener('blur', function() {
-        if (this.value && this.checkValidity()) {
-            this.style.borderColor = 'var(--primary-color)';
+// Visual validation in real-time (only on pages with forms)
+if (form) {
+    const inputs = form.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value && this.checkValidity()) {
+                this.style.borderColor = 'var(--primary-color)';
+            }
+        });
+
+        input.addEventListener('input', function() {
+            this.style.borderColor = 'var(--border-color)';
+        });
+    });
+}
+
+/**
+ * Initialize the planner page (form)
+ */
+function initPlannerPage() {
+    // Check if user already has an active plan
+    if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+        if (typeof isPlanLocked === 'function' && isPlanLocked()) {
+            // User has active plan, redirect to my-plan
+            window.location.href = 'my-plan.html';
+            return;
         }
-    });
+    }
 
-    input.addEventListener('input', function() {
-        this.style.borderColor = 'var(--border-color)';
-    });
-});
+    // Process pending form data if any (after auth redirect back)
+    if (typeof getPendingFormData === 'function') {
+        const pendingData = getPendingFormData();
+        if (pendingData && typeof isLoggedIn === 'function' && isLoggedIn()) {
+            if (typeof clearPendingFormData === 'function') {
+                clearPendingFormData();
+            }
+            generateAndDisplayResults(pendingData);
+        }
+    }
+}
 
-// Load existing plan on page load (if user is logged in)
+/**
+ * Initialize the my-plan page (results)
+ */
+function initMyPlanPage() {
+    // Check if user is logged in
+    if (typeof isLoggedIn !== 'function' || !isLoggedIn()) {
+        // Show no plan message and prompt to login/create plan
+        if (noPlanMessage) noPlanMessage.classList.remove('hidden');
+        if (planContent) planContent.classList.add('hidden');
+        return;
+    }
+
+    // Try to load existing plan
+    const planLoaded = loadExistingPlan();
+
+    if (!planLoaded) {
+        // No active plan, show no plan message
+        if (noPlanMessage) noPlanMessage.classList.remove('hidden');
+        if (planContent) planContent.classList.add('hidden');
+    }
+}
+
+/**
+ * Initialize the landing page
+ */
+function initLandingPage() {
+    // Landing page doesn't need special initialization
+    // Just update nav auth if available
+}
+
+// Page-specific initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Wait a bit for auth.js to initialize
     setTimeout(() => {
-        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
-            loadExistingPlan();
+        // Initialize based on current page
+        if (currentPage === 'planner.html') {
+            initPlannerPage();
+        } else if (currentPage === 'my-plan.html') {
+            initMyPlanPage();
+        } else {
+            initLandingPage();
         }
+
+        // Update plan status UI if available
         if (typeof updatePlanStatusUI === 'function') {
             updatePlanStatusUI();
         }

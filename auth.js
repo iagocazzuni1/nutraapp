@@ -7,6 +7,33 @@
 const USERS_KEY = 'nutriplan_users';
 const CURRENT_USER_KEY = 'nutriplan_current_user';
 const USER_PLAN_PREFIX = 'nutriplan_user_plan_';
+const PENDING_FORM_KEY = 'nutriplan_pending_form';
+
+// ============================================
+// PENDING FORM DATA FUNCTIONS
+// ============================================
+
+/**
+ * Save pending form data when user submits without being logged in
+ */
+function savePendingFormData(formData) {
+    localStorage.setItem(PENDING_FORM_KEY, JSON.stringify(formData));
+}
+
+/**
+ * Get pending form data
+ */
+function getPendingFormData() {
+    const data = localStorage.getItem(PENDING_FORM_KEY);
+    return data ? JSON.parse(data) : null;
+}
+
+/**
+ * Clear pending form data
+ */
+function clearPendingFormData() {
+    localStorage.removeItem(PENDING_FORM_KEY);
+}
 
 // ============================================
 // USER MANAGEMENT
@@ -76,6 +103,82 @@ function isPremium() {
 // ============================================
 // AUTHENTICATION FUNCTIONS
 // ============================================
+
+/**
+ * Sign in with Google using Firebase
+ */
+async function signInWithGoogle() {
+    // Check if Firebase is available
+    if (typeof firebaseAuth === 'undefined' || !firebaseAuth) {
+        alert('Google Sign-In requires Firebase. Please configure Firebase first.');
+        return { success: false, message: 'Firebase not configured' };
+    }
+
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebaseAuth.signInWithPopup(provider);
+        const user = result.user;
+
+        // Create userData object
+        const userData = {
+            id: user.uid,
+            name: user.displayName || 'User',
+            email: user.email,
+            isPremium: false,
+            createdAt: new Date().toISOString(),
+            authProvider: 'google'
+        };
+
+        // Check if user already exists (to preserve premium status)
+        const existingData = localStorage.getItem(CURRENT_USER_KEY);
+        if (existingData) {
+            const parsed = JSON.parse(existingData);
+            if (parsed.id === user.uid) {
+                userData.isPremium = parsed.isPremium || false;
+                userData.premiumSince = parsed.premiumSince || null;
+            }
+        }
+
+        // Save user data
+        saveCurrentUser(userData);
+
+        // Close modal and update UI
+        closeModal('loginModal');
+        updateNavAuth();
+        updatePremiumUI();
+        updatePlanStatusUI();
+
+        // Process pending form data if exists
+        if (typeof processPendingFormData === 'function') {
+            processPendingFormData();
+        } else if (typeof loadExistingPlan === 'function') {
+            loadExistingPlan();
+        }
+
+        return { success: true, user: userData };
+    } catch (error) {
+        console.error('Google Sign-In Error:', error);
+        let message = 'Google Sign-In failed. Please try again.';
+        if (error.code === 'auth/popup-closed-by-user') {
+            message = 'Sign-in popup was closed. Please try again.';
+        } else if (error.code === 'auth/popup-blocked') {
+            message = 'Popup was blocked. Please allow popups and try again.';
+        }
+
+        // Show error in the modal
+        const loginError = document.getElementById('loginError');
+        const registerError = document.getElementById('registerError');
+        if (loginError && !loginError.closest('.hidden')) {
+            loginError.textContent = message;
+            loginError.classList.add('show');
+        } else if (registerError) {
+            registerError.textContent = message;
+            registerError.classList.add('show');
+        }
+
+        return { success: false, message: message };
+    }
+}
 
 /**
  * Register a new user
@@ -210,12 +313,10 @@ async function logoutUser() {
     updatePremiumUI();
     updatePlanStatusUI();
 
-    // Hide results and show form if logged out
-    const resultsSection = document.getElementById('resultados');
-    const formSection = document.querySelector('.form-section');
-    if (resultsSection && formSection) {
-        resultsSection.classList.add('hidden');
-        formSection.style.display = 'block';
+    // Redirect to landing page after logout
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    if (currentPage === 'my-plan.html') {
+        window.location.href = 'index.html';
     }
 }
 
@@ -405,21 +506,35 @@ function getPlanStatus() {
  */
 function updateNavAuth() {
     const navAuth = document.getElementById('navAuth');
+    if (!navAuth) return;
+
     const user = getCurrentUser();
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
     if (user) {
         navAuth.innerHTML = `
             <div class="user-info">
                 <span class="user-name">Hi, ${user.name.split(' ')[0]}!</span>
                 ${user.isPremium ? '<span class="premium-status">Premium</span>' : ''}
+                <a href="my-plan.html" class="btn-my-plan">My Plan</a>
                 <button class="btn-logout" onclick="logoutUser()">Logout</button>
             </div>
         `;
     } else {
-        navAuth.innerHTML = `
-            <button class="btn-login" onclick="openModal('loginModal')">Login</button>
-            <button class="btn-register" onclick="openModal('loginModal'); switchAuthTab('register')">Sign Up</button>
-        `;
+        // Check if we have login modal on this page
+        const hasLoginModal = document.getElementById('loginModal');
+        if (hasLoginModal) {
+            navAuth.innerHTML = `
+                <button class="btn-login" onclick="openModal('loginModal')">Login</button>
+                <button class="btn-register" onclick="openModal('loginModal'); switchAuthTab('register')">Sign Up</button>
+            `;
+        } else {
+            // Landing page - link to planner with login prompt
+            navAuth.innerHTML = `
+                <a href="planner.html" class="btn-login">Login</a>
+                <a href="planner.html" class="btn-register">Sign Up</a>
+            `;
+        }
     }
 }
 
@@ -429,7 +544,7 @@ function updateNavAuth() {
 function updatePremiumUI() {
     const premium = isPremium();
 
-    // Update badges
+    // Update badges (if they exist on this page)
     const mealBadge = document.getElementById('mealPlanBadge');
     const workoutBadge = document.getElementById('workoutPlanBadge');
 
@@ -451,6 +566,7 @@ function updatePlanStatusUI() {
     const status = getPlanStatus();
     const banner = document.getElementById('planStatusBanner');
     const btnRefazer = document.getElementById('btnRefazer');
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
     if (banner) {
         if (status.isActive) {
@@ -469,10 +585,18 @@ function updatePlanStatusUI() {
     if (btnRefazer) {
         if (status.isActive) {
             btnRefazer.classList.add('btn-locked');
-            btnRefazer.innerHTML = `
-                <span class="lock-icon">🔒</span>
-                Plan Locked (${status.daysRemaining} days)
-            `;
+            // Check if it's a link (on my-plan.html) or button
+            if (btnRefazer.tagName === 'A') {
+                btnRefazer.innerHTML = `
+                    <span class="lock-icon">🔒</span>
+                    Plan Locked (${status.daysRemaining} days)
+                `;
+            } else {
+                btnRefazer.innerHTML = `
+                    <span class="lock-icon">🔒</span>
+                    Plan Locked (${status.daysRemaining} days)
+                `;
+            }
         } else {
             btnRefazer.classList.remove('btn-locked');
             btnRefazer.textContent = 'Start Over';
@@ -522,64 +646,78 @@ function checkPremiumAccess(callback) {
 // FORM HANDLERS
 // ============================================
 
-// Login form handler
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
+// Login form handler (only if form exists)
+const loginFormEl = document.getElementById('loginForm');
+if (loginFormEl) {
+    loginFormEl.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    const errorDiv = document.getElementById('loginError');
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('loginError');
 
-    const result = await loginUser(email, password);
+        const result = await loginUser(email, password);
 
-    if (result.success) {
-        closeModal('loginModal');
-        updateNavAuth();
-        updatePremiumUI();
-        updatePlanStatusUI();
-        this.reset();
+        if (result.success) {
+            closeModal('loginModal');
+            updateNavAuth();
+            updatePremiumUI();
+            updatePlanStatusUI();
+            this.reset();
 
-        // Load existing plan if available
-        if (typeof loadExistingPlan === 'function') {
-            loadExistingPlan();
+            // Process pending form data if exists
+            if (typeof processPendingFormData === 'function') {
+                processPendingFormData();
+            } else if (typeof loadExistingPlan === 'function') {
+                loadExistingPlan();
+            }
+        } else {
+            errorDiv.textContent = result.message;
+            errorDiv.classList.add('show');
         }
-    } else {
-        errorDiv.textContent = result.message;
-        errorDiv.classList.add('show');
-    }
-});
+    });
+}
 
-// Register form handler
-document.getElementById('registerForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
+// Register form handler (only if form exists)
+const registerFormEl = document.getElementById('registerForm');
+if (registerFormEl) {
+    registerFormEl.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-    const name = document.getElementById('registerName').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirm = document.getElementById('registerConfirm').value;
-    const errorDiv = document.getElementById('registerError');
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirm = document.getElementById('registerConfirm').value;
+        const errorDiv = document.getElementById('registerError');
 
-    // Validate passwords match
-    if (password !== confirm) {
-        errorDiv.textContent = 'Passwords do not match';
-        errorDiv.classList.add('show');
-        return;
-    }
+        // Validate passwords match
+        if (password !== confirm) {
+            errorDiv.textContent = 'Passwords do not match';
+            errorDiv.classList.add('show');
+            return;
+        }
 
-    const result = await registerUser(name, email, password);
+        const result = await registerUser(name, email, password);
 
-    if (result.success) {
-        closeModal('loginModal');
-        updateNavAuth();
-        updatePremiumUI();
-        updatePlanStatusUI();
-        this.reset();
-        alert('Account created successfully! Welcome to NutriPlan!');
-    } else {
-        errorDiv.textContent = result.message;
-        errorDiv.classList.add('show');
-    }
-});
+        if (result.success) {
+            closeModal('loginModal');
+            updateNavAuth();
+            updatePremiumUI();
+            updatePlanStatusUI();
+            this.reset();
+
+            // Process pending form data if exists (don't show welcome message if generating plan)
+            if (typeof processPendingFormData === 'function' && getPendingFormData()) {
+                processPendingFormData();
+            } else {
+                alert('Account created successfully! Welcome to NutriPlan!');
+            }
+        } else {
+            errorDiv.textContent = result.message;
+            errorDiv.classList.add('show');
+        }
+    });
+}
 
 // ============================================
 // INITIALIZATION
@@ -600,6 +738,15 @@ document.addEventListener('DOMContentLoaded', function() {
             updateNavAuth();
             updatePremiumUI();
             updatePlanStatusUI();
+
+            // If on my-plan page and user just logged in, reload to show plan
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            if (currentPage === 'my-plan.html' && user) {
+                // Reload to trigger initMyPlanPage with logged in user
+                if (typeof initMyPlanPage === 'function') {
+                    initMyPlanPage();
+                }
+            }
         });
     }
 });
