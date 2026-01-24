@@ -1301,6 +1301,35 @@ header {
     border: none;
 }
 
+.video-fallback-message {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card-elevated);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.video-fallback-message p {
+    color: var(--text-secondary);
+    padding: 20px;
+}
+
+.video-fallback-message a {
+    color: var(--primary-light);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.video-fallback-message a:hover {
+    text-decoration: underline;
+}
+
 .recipe-details {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1564,6 +1593,17 @@ header {
 /* Fallback when video doesn't load */
 .exercise-demo-video:not([src]) {
     display: none;
+}
+
+.video-fallback.hidden {
+    display: none;
+}
+
+.exercise-video-demo .video-fallback {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .exercise-svg {
@@ -2148,4 +2188,216 @@ footer p {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   PLAN STATUS & PERSISTENCE
+   ============================================ */
+
+/* Form hint for plan duration */
+.form-hint {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Plan Status Banner */
+.plan-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 28px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: var(--radius-lg);
+    margin-bottom: 32px;
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.plan-status-banner.hidden {
+    display: none;
+}
+
+.plan-status-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--secondary);
+    color: white;
+    border-radius: var(--radius-full);
+    font-size: 1.4rem;
+    box-shadow: var(--shadow-glow-green);
+}
+
+.plan-status-text {
+    flex: 1;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.plan-status-text strong {
+    color: var(--secondary);
+}
+
+/* Locked Button State */
+.btn-secondary.btn-locked {
+    background: var(--bg-card-elevated);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-secondary.btn-locked:hover {
+    transform: none;
+    background: var(--bg-card-elevated);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+}
+
+.btn-secondary.btn-locked .lock-icon {
+    font-size: 1.1rem;
+}
+
+/* ============================================
+   SUPPLEMENTS SECTION
+   ============================================ */
+.supplements-section {
+    margin-top: 40px;
+}
+
+.supplements-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.supplements-header h3 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.supplements-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.supplements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.supplement-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.supplement-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.supplement-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.supplement-name {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.supplement-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.supplement-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+}
+
+.supplement-benefits li {
+    color: var(--secondary);
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.supplement-timing {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 12px;
+    background: var(--bg-card-elevated);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+}
+
+.supplement-timing strong {
+    color: var(--text-secondary);
+}
+
+.supplement-link {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    text-decoration: none;
+    margin-top: auto;
+}
+
+.btn-secondary-small {
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary-small:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Anatomical SVG Styles */
+.exercise-svg.anatomical {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+}
+
+.exercise-svg .muscle {
+    transition: fill 0.3s ease, opacity 0.3s ease;
+}
+
+.exercise-svg .body-structure {
+    opacity: 0.95;
 }

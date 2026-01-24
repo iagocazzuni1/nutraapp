@@ -218,6 +218,22 @@
                         </select>
                     </div>
 
+                    <!-- Plan Duration -->
+                    <div class="form-group-title">
+                        <span class="step-number">6</span>
+                        <h3>Plan Duration</h3>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="planDuration">How long do you want to follow this plan?</label>
+                        <select id="planDuration" name="planDuration" required>
+                            <option value="30" selected>1 Month (30 days)</option>
+                            <option value="60">2 Months (60 days)</option>
+                            <option value="90">3 Months (90 days)</option>
+                        </select>
+                        <p class="form-hint">Your plan will be locked for this duration. You won't be able to change it until it expires.</p>
+                    </div>
+
                     <button type="submit" class="btn-submit">
                         <span>Generate My Plan</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -232,6 +248,14 @@
         <!-- Results Section (initially hidden) -->
         <section id="resultados" class="results-section hidden">
             <div class="container">
+                <!-- Plan Status Banner -->
+                <div id="planStatusBanner" class="plan-status-banner hidden">
+                    <span class="plan-status-icon">✓</span>
+                    <span class="plan-status-text">
+                        <strong>Plan Active</strong> - Loading...
+                    </span>
+                </div>
+
                 <!-- Profile Summary -->
                 <div class="result-card profile-summary">
                     <h2>Your Profile</h2>
@@ -262,6 +286,12 @@
                     </div>
                     <p class="plan-description">A, B, C, D split by muscle groups. Click on each workout to see exercises and video tutorials.</p>
                     <div id="workoutPlan" class="workout-container"></div>
+                </div>
+
+                <!-- Supplements Section -->
+                <div class="result-card supplements-section">
+                    <h2>Recommended Supplements</h2>
+                    <div id="supplementsSection"></div>
                 </div>
 
                 <!-- Tips -->

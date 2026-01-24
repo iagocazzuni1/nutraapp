@@ -17,7 +17,7 @@ const RECIPES = {
                 protein: 22,
                 carbs: 8,
                 fat: 6,
-                youtubeId: "lBfMSwdj8_I",
+                youtubeId: "57afEWn-QDg",
                 ingredients: [
                     "4 egg whites",
                     "1 whole egg",
@@ -47,7 +47,7 @@ const RECIPES = {
                 protein: 20,
                 carbs: 25,
                 fat: 5,
-                youtubeId: "rKfkrcZHOYQ",
+                youtubeId: "V8FtS_8FiEE",
                 ingredients: [
                     "1 cup non-fat Greek yogurt",
                     "1/2 cup mixed berries",
@@ -75,7 +75,7 @@ const RECIPES = {
                 protein: 15,
                 carbs: 22,
                 fat: 16,
-                youtubeId: "kzJGbIVedFo",
+                youtubeId: "GkhMgQQrLDc",
                 ingredients: [
                     "1 slice whole grain bread",
                     "1/2 ripe avocado",
@@ -105,7 +105,7 @@ const RECIPES = {
                 protein: 38,
                 carbs: 12,
                 fat: 14,
-                youtubeId: "n1oe0Kya0ss",
+                youtubeId: "GG1Nj6tWQDQ",
                 ingredients: [
                     "6 oz chicken breast",
                     "4 cups mixed greens",
@@ -135,7 +135,7 @@ const RECIPES = {
                 protein: 30,
                 carbs: 8,
                 fat: 11,
-                youtubeId: "YH9AfWE1nbs",
+                youtubeId: "VaJLjF2swLM",
                 ingredients: [
                     "1 can tuna in water, drained",
                     "2 tbsp Greek yogurt",
@@ -163,7 +163,7 @@ const RECIPES = {
                 protein: 32,
                 carbs: 15,
                 fat: 10,
-                youtubeId: "Kwe7FJ5q4ZA",
+                youtubeId: "Z8aC2CRjzKo",
                 ingredients: [
                     "8 oz shrimp, peeled and deveined",
                     "2 cups broccoli florets",
@@ -195,7 +195,7 @@ const RECIPES = {
                 protein: 40,
                 carbs: 8,
                 fat: 18,
-                youtubeId: "9yr_GvIjmwA",
+                youtubeId: "b-LNPH_LKUA",
                 ingredients: [
                     "2 salmon fillets (6 oz each)",
                     "1 bunch asparagus",
@@ -225,7 +225,7 @@ const RECIPES = {
                 protein: 35,
                 carbs: 15,
                 fat: 14,
-                youtubeId: "xDpIqLcGLvE",
+                youtubeId: "xB1xBMV6N6I",
                 ingredients: [
                     "1 lb ground turkey",
                     "4 medium zucchinis",
@@ -255,7 +255,7 @@ const RECIPES = {
                 protein: 36,
                 carbs: 18,
                 fat: 12,
-                youtubeId: "0GoU54ppQQI",
+                youtubeId: "gJvWPABZYxec",
                 ingredients: [
                     "2 chicken breasts (6 oz each)",
                     "1 zucchini",
@@ -287,7 +287,7 @@ const RECIPES = {
                 protein: 5,
                 carbs: 10,
                 fat: 4,
-                youtubeId: "dOWM9TGdwcc",
+                youtubeId: "FdXAG_MYoVU",
                 ingredients: [
                     "1 cup oats",
                     "1/2 cup peanut butter",
@@ -315,7 +315,7 @@ const RECIPES = {
                 protein: 6,
                 carbs: 12,
                 fat: 6,
-                youtubeId: "lOBZA8RjoWM",
+                youtubeId: "l98J62-1kWE",
                 ingredients: [
                     "1 large cucumber",
                     "1/4 cup hummus",
@@ -342,7 +342,7 @@ const RECIPES = {
                 protein: 4,
                 carbs: 22,
                 fat: 10,
-                youtubeId: "S5ofqvMqv_I",
+                youtubeId: "B5lkC0aHwME",
                 ingredients: [
                     "1 medium apple",
                     "2 tbsp almond butter",
@@ -373,7 +373,7 @@ const RECIPES = {
                 protein: 15,
                 carbs: 55,
                 fat: 12,
-                youtubeId: "O5vSoHyvE9o",
+                youtubeId: "jOWPEGHl5Qo",
                 ingredients: [
                     "1/2 cup rolled oats",
                     "1/2 cup milk",
@@ -401,7 +401,7 @@ const RECIPES = {
                 protein: 18,
                 carbs: 58,
                 fat: 14,
-                youtubeId: "NOMxjmgCYNY",
+                youtubeId: "IY5ykPd3coo",
                 ingredients: [
                     "1 cup whole wheat flour",
                     "1 egg",
@@ -431,7 +431,7 @@ const RECIPES = {
                 protein: 25,
                 carbs: 42,
                 fat: 20,
-                youtubeId: "b09KoKOmyXE",
+                youtubeId: "xC4oJh1O_Yw",
                 ingredients: [
                     "1 large whole wheat tortilla",
                     "2 scrambled eggs",
@@ -462,7 +462,7 @@ const RECIPES = {
                 protein: 22,
                 carbs: 52,
                 fat: 18,
-                youtubeId: "JLgaM9lLd84",
+                youtubeId: "w6GiGQocuL8",
                 ingredients: [
                     "1 cup quinoa",
                     "1 cup chickpeas",
@@ -492,7 +492,7 @@ const RECIPES = {
                 protein: 35,
                 carbs: 40,
                 fat: 20,
-                youtubeId: "MUvJeI_S3zM",
+                youtubeId: "P7L3s8dPhQ4",
                 ingredients: [
                     "3 slices whole grain bread",
                     "4 oz sliced turkey breast",
@@ -521,7 +521,7 @@ const RECIPES = {
                 protein: 38,
                 carbs: 55,
                 fat: 16,
-                youtubeId: "n1oe0Kya0ss",
+                youtubeId: "W7CVLAT1FI8",
                 ingredients: [
                     "1 cup brown rice",
                     "8 oz chicken thighs",
@@ -553,7 +553,7 @@ const RECIPES = {
                 protein: 35,
                 carbs: 50,
                 fat: 20,
-                youtubeId: "PuXGCfpSL7c",
+                youtubeId: "jT9GfCQPW3o",
                 ingredients: [
                     "8 oz beef sirloin, sliced",
                     "1 cup brown rice",
@@ -583,7 +583,7 @@ const RECIPES = {
                 protein: 22,
                 carbs: 62,
                 fat: 16,
-                youtubeId: "JJh3dzLFLgE",
+                youtubeId: "VZ4vqr-XjlA",
                 ingredients: [
                     "8 oz whole wheat pasta",
                     "1 cup cherry tomatoes",
@@ -613,7 +613,7 @@ const RECIPES = {
                 protein: 40,
                 carbs: 35,
                 fat: 16,
-                youtubeId: "reIpXaHxD7o",
+                youtubeId: "oC0B1Wy27u4",
                 ingredients: [
                     "2 chicken breasts",
                     "3 tbsp honey",
@@ -645,7 +645,7 @@ const RECIPES = {
                 protein: 6,
                 carbs: 20,
                 fat: 12,
-                youtubeId: "JJrAeM-I47Y",
+                youtubeId: "8vM-YN0EkO0",
                 ingredients: [
                     "1/2 cup almonds",
                     "1/2 cup walnuts",
@@ -672,7 +672,7 @@ const RECIPES = {
                 protein: 12,
                 carbs: 45,
                 fat: 6,
-                youtubeId: "cLqNHmFoqBk",
+                youtubeId: "3tIJOJwrzsk",
                 ingredients: [
                     "1 frozen banana",
                     "1/2 cup frozen berries",
@@ -700,7 +700,7 @@ const RECIPES = {
                 protein: 10,
                 carbs: 6,
                 fat: 14,
-                youtubeId: "gfQEXqq5B8A",
+                youtubeId: "vPLjPnmrn4w",
                 ingredients: [
                     "Cherry tomatoes",
                     "Fresh mozzarella balls",
@@ -733,7 +733,7 @@ const RECIPES = {
                 protein: 40,
                 carbs: 58,
                 fat: 14,
-                youtubeId: "Xbe-3KHOQ0A",
+                youtubeId: "1ASZ7Htnc-I",
                 ingredients: [
                     "2 whole eggs",
                     "1 ripe banana",
@@ -762,7 +762,7 @@ const RECIPES = {
                 protein: 35,
                 carbs: 75,
                 fat: 16,
-                youtubeId: "q3lTWcP6xB0",
+                youtubeId: "VnJRKD-CUfY",
                 ingredients: [
                     "1 cup oats",
                     "1.5 cups whole milk",
@@ -792,7 +792,7 @@ const RECIPES = {
                 protein: 28,
                 carbs: 42,
                 fat: 32,
-                youtubeId: "kzJGbIVedFo",
+                youtubeId: "GkhMgQQrLDc",
                 ingredients: [
                     "2 slices sourdough bread",
                     "3 whole eggs",
@@ -823,7 +823,7 @@ const RECIPES = {
                 protein: 48,
                 carbs: 62,
                 fat: 26,
-                youtubeId: "0TvO_0FgHvs",
+                youtubeId: "SaDqesWFHBE",
                 ingredients: [
                     "8 oz fettuccine pasta",
                     "10 oz chicken breast",
@@ -853,7 +853,7 @@ const RECIPES = {
                 protein: 55,
                 carbs: 48,
                 fat: 38,
-                youtubeId: "nbCgfiqq-5c",
+                youtubeId: "nUbWf8EfVJM",
                 ingredients: [
                     "10 oz ground beef (80/20)",
                     "1 brioche bun",
@@ -883,7 +883,7 @@ const RECIPES = {
                 protein: 35,
                 carbs: 65,
                 fat: 25,
-                youtubeId: "qjc4BkMTflw",
+                youtubeId: "WnOopcLSi7I",
                 ingredients: [
                     "1 large russet potato",
                     "6 oz pulled chicken",
@@ -915,7 +915,7 @@ const RECIPES = {
                 protein: 55,
                 carbs: 45,
                 fat: 42,
-                youtubeId: "PpPc2anEy5A",
+                youtubeId: "AmC9SmCBUj4",
                 ingredients: [
                     "12 oz ribeye steak",
                     "2 medium potatoes",
@@ -945,7 +945,7 @@ const RECIPES = {
                 protein: 45,
                 carbs: 55,
                 fat: 28,
-                youtubeId: "3tIJOJwrzsk",
+                youtubeId: "V3zQCH7FzNI",
                 ingredients: [
                     "8 oz salmon fillet",
                     "1.5 cups sushi rice",
@@ -975,7 +975,7 @@ const RECIPES = {
                 protein: 40,
                 carbs: 68,
                 fat: 20,
-                youtubeId: "eY1FF6SEggk",
+                youtubeId: "FLdNPvla5fI",
                 ingredients: [
                     "2 cups day-old rice",
                     "10 oz chicken breast, diced",
@@ -1007,7 +1007,7 @@ const RECIPES = {
                 protein: 45,
                 carbs: 65,
                 fat: 12,
-                youtubeId: "mKDazN0zOF0",
+                youtubeId: "pjWPABZYxec",
                 ingredients: [
                     "2 cups whole milk",
                     "2 scoops whey protein",
@@ -1035,7 +1035,7 @@ const RECIPES = {
                 protein: 14,
                 carbs: 52,
                 fat: 20,
-                youtubeId: "O5vSoHyvE9o",
+                youtubeId: "B5lkC0aHwME",
                 ingredients: [
                     "2 slices whole grain bread",
                     "3 tbsp peanut butter",
@@ -1062,7 +1062,7 @@ const RECIPES = {
                 protein: 28,
                 carbs: 30,
                 fat: 6,
-                youtubeId: "E0nLY3Z4d4Y",
+                youtubeId: "Uh8JpfzBmcc",
                 ingredients: [
                     "1.5 cups cottage cheese",
                     "1/2 cup pineapple chunks",
@@ -1719,5 +1719,105 @@ const TIPS = {
         "Prioritize sleep - muscle grows during recovery",
         "Progressive overload: gradually increase weights",
         "Eat complex carbs before and after training"
+    ]
+};
+
+// Supplements organized by goal
+const SUPPLEMENTS = {
+    emagrecer: [
+        {
+            id: "fat-burner",
+            name: "Thermogenic Fat Burner",
+            icon: "🔥",
+            description: "Increases metabolism and helps burn stored fat. Contains caffeine and green tea extract.",
+            benefits: ["Accelerates fat burning", "Boosts energy", "Reduces appetite"],
+            timing: "Take 30 minutes before workout",
+            link: "#"
+        },
+        {
+            id: "cla",
+            name: "CLA (Conjugated Linoleic Acid)",
+            icon: "💊",
+            description: "Helps reduce body fat while preserving lean muscle mass.",
+            benefits: ["Reduces body fat", "Preserves muscle", "Improves body composition"],
+            timing: "Take with meals",
+            link: "#"
+        },
+        {
+            id: "l-carnitine",
+            name: "L-Carnitine",
+            icon: "⚡",
+            description: "Transports fatty acids to cells for energy production.",
+            benefits: ["Enhances fat oxidation", "Increases endurance", "Speeds recovery"],
+            timing: "Take 30-60 minutes before cardio",
+            link: "#"
+        }
+    ],
+    manter: [
+        {
+            id: "multivitamin",
+            name: "Daily Multivitamin",
+            icon: "💎",
+            description: "Complete vitamin and mineral formula to fill nutritional gaps.",
+            benefits: ["Fills nutritional gaps", "Supports immunity", "Promotes energy"],
+            timing: "Take with breakfast",
+            link: "#"
+        },
+        {
+            id: "omega3",
+            name: "Omega-3 Fish Oil",
+            icon: "🐟",
+            description: "Essential fatty acids for heart, brain, and joint health.",
+            benefits: ["Heart health", "Brain function", "Joint support"],
+            timing: "Take with meals",
+            link: "#"
+        },
+        {
+            id: "vitamin-d",
+            name: "Vitamin D3",
+            icon: "☀️",
+            description: "Supports bone health, immune function, and mood.",
+            benefits: ["Bone strength", "Immune support", "Mood enhancement"],
+            timing: "Take in the morning with fat",
+            link: "#"
+        }
+    ],
+    ganharMassa: [
+        {
+            id: "whey-protein",
+            name: "Whey Protein Isolate",
+            icon: "🥛",
+            description: "Fast-absorbing protein for muscle recovery. 25g protein per serving.",
+            benefits: ["Muscle growth", "Fast absorption", "Post-workout recovery"],
+            timing: "Within 30 minutes post-workout",
+            link: "#"
+        },
+        {
+            id: "creatine",
+            name: "Creatine Monohydrate",
+            icon: "💪",
+            description: "Most researched supplement for strength gains. Increases ATP production.",
+            benefits: ["Increases strength", "Muscle volume", "Enhanced performance"],
+            timing: "5g daily, any time",
+            link: "#"
+        },
+        {
+            id: "mass-gainer",
+            name: "Mass Gainer Protein",
+            icon: "🏋️",
+            description: "High-calorie shake for hard gainers. 1000+ calories per serving.",
+            benefits: ["Caloric surplus", "Muscle building", "Weight gain"],
+            timing: "Between meals or post-workout",
+            link: "#"
+        },
+        {
+            id: "bcaa",
+            name: "BCAA (Branched Chain Amino Acids)",
+            icon: "🧬",
+            description: "Essential amino acids to prevent muscle breakdown.",
+            benefits: ["Prevents catabolism", "Reduces soreness", "Supports recovery"],
+            timing: "During or after workout",
+            link: "#"
+        }
     ]
 };

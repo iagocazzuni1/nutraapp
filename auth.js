@@ -6,6 +6,7 @@
 // Storage keys
 const USERS_KEY = 'nutriplan_users';
 const CURRENT_USER_KEY = 'nutriplan_current_user';
+const USER_PLAN_PREFIX = 'nutriplan_user_plan_';
 
 // ============================================
 // USER MANAGEMENT
@@ -207,6 +208,15 @@ async function logoutUser() {
     localStorage.removeItem(CURRENT_USER_KEY);
     updateNavAuth();
     updatePremiumUI();
+    updatePlanStatusUI();
+
+    // Hide results and show form if logged out
+    const resultsSection = document.getElementById('resultados');
+    const formSection = document.querySelector('.form-section');
+    if (resultsSection && formSection) {
+        resultsSection.classList.add('hidden');
+        formSection.style.display = 'block';
+    }
 }
 
 /**
@@ -290,6 +300,103 @@ function handlePaymentSuccess() {
 }
 
 // ============================================
+// PLAN PERSISTENCE FUNCTIONS
+// ============================================
+
+/**
+ * Get storage key for user's plan
+ * @param {string|number} userId - User ID
+ * @returns {string} - Storage key
+ */
+function getUserPlanKey(userId) {
+    return `${USER_PLAN_PREFIX}${userId}`;
+}
+
+/**
+ * Save user's plan to localStorage
+ * @param {Object} plan - Plan object containing userData, calculations, duration, etc.
+ */
+function saveUserPlan(plan) {
+    const user = getCurrentUser();
+    if (!user) return false;
+
+    const planData = {
+        ...plan,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + (plan.planDuration || 30) * 24 * 60 * 60 * 1000).toISOString()
+    };
+
+    localStorage.setItem(getUserPlanKey(user.id), JSON.stringify(planData));
+    return true;
+}
+
+/**
+ * Load user's plan from localStorage
+ * @returns {Object|null} - Plan object or null if not found
+ */
+function loadUserPlan() {
+    const user = getCurrentUser();
+    if (!user) return null;
+
+    const planData = localStorage.getItem(getUserPlanKey(user.id));
+    return planData ? JSON.parse(planData) : null;
+}
+
+/**
+ * Check if user's plan is still locked (not expired)
+ * @returns {boolean} - True if plan is active and locked
+ */
+function isPlanLocked() {
+    const plan = loadUserPlan();
+    if (!plan || !plan.expiresAt) return false;
+
+    return new Date() < new Date(plan.expiresAt);
+}
+
+/**
+ * Get remaining days of the plan
+ * @returns {number} - Days remaining, 0 if expired or no plan
+ */
+function getPlanDaysRemaining() {
+    const plan = loadUserPlan();
+    if (!plan || !plan.expiresAt) return 0;
+
+    const remaining = new Date(plan.expiresAt) - new Date();
+    const days = Math.ceil(remaining / (24 * 60 * 60 * 1000));
+    return Math.max(0, days);
+}
+
+/**
+ * Delete user's plan
+ */
+function deletePlan() {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    localStorage.removeItem(getUserPlanKey(user.id));
+}
+
+/**
+ * Get plan status info for UI
+ * @returns {Object} - Status info with isActive, daysRemaining, expiresAt
+ */
+function getPlanStatus() {
+    const plan = loadUserPlan();
+    if (!plan) {
+        return { isActive: false, daysRemaining: 0, expiresAt: null, createdAt: null };
+    }
+
+    const daysRemaining = getPlanDaysRemaining();
+    return {
+        isActive: daysRemaining > 0,
+        daysRemaining: daysRemaining,
+        expiresAt: plan.expiresAt,
+        createdAt: plan.createdAt,
+        planDuration: plan.planDuration || 30
+    };
+}
+
+// ============================================
 // UI FUNCTIONS
 // ============================================
 
@@ -334,6 +441,42 @@ function updatePremiumUI() {
     if (workoutBadge) {
         workoutBadge.textContent = premium ? '✓ Unlocked' : 'Premium';
         workoutBadge.classList.toggle('unlocked', premium);
+    }
+}
+
+/**
+ * Update plan status UI (banner and button state)
+ */
+function updatePlanStatusUI() {
+    const status = getPlanStatus();
+    const banner = document.getElementById('planStatusBanner');
+    const btnRefazer = document.getElementById('btnRefazer');
+
+    if (banner) {
+        if (status.isActive) {
+            banner.classList.remove('hidden');
+            banner.innerHTML = `
+                <span class="plan-status-icon">✓</span>
+                <span class="plan-status-text">
+                    <strong>Plan Active</strong> - ${status.daysRemaining} day${status.daysRemaining !== 1 ? 's' : ''} remaining
+                </span>
+            `;
+        } else {
+            banner.classList.add('hidden');
+        }
+    }
+
+    if (btnRefazer) {
+        if (status.isActive) {
+            btnRefazer.classList.add('btn-locked');
+            btnRefazer.innerHTML = `
+                <span class="lock-icon">🔒</span>
+                Plan Locked (${status.daysRemaining} days)
+            `;
+        } else {
+            btnRefazer.classList.remove('btn-locked');
+            btnRefazer.textContent = 'Start Over';
+        }
     }
 }
 
@@ -393,7 +536,13 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         closeModal('loginModal');
         updateNavAuth();
         updatePremiumUI();
+        updatePlanStatusUI();
         this.reset();
+
+        // Load existing plan if available
+        if (typeof loadExistingPlan === 'function') {
+            loadExistingPlan();
+        }
     } else {
         errorDiv.textContent = result.message;
         errorDiv.classList.add('show');
@@ -423,6 +572,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         closeModal('loginModal');
         updateNavAuth();
         updatePremiumUI();
+        updatePlanStatusUI();
         this.reset();
         alert('Account created successfully! Welcome to NutriPlan!');
     } else {
@@ -439,6 +589,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
 document.addEventListener('DOMContentLoaded', function() {
     updateNavAuth();
     updatePremiumUI();
+    updatePlanStatusUI();
 
     // Handle payment success callback
     handlePaymentSuccess();
@@ -448,6 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
         firebaseAuth.onAuthStateChanged(function(user) {
             updateNavAuth();
             updatePremiumUI();
+            updatePlanStatusUI();
         });
     }
 });

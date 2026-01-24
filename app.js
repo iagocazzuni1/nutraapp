@@ -12,6 +12,7 @@ const btnRefazer = document.getElementById('btnRefazer');
 let userData = {};
 let currentRecipes = {};
 let currentWorkout = {};
+let calculatedValues = {}; // Store BMR, TDEE, calories, macros
 
 // Event Listeners
 form.addEventListener('submit', handleFormSubmit);
@@ -373,6 +374,45 @@ function generateTips(goal) {
     `;
 }
 
+/**
+ * Generates supplements section based on goal
+ */
+function generateSupplementsSection(goal) {
+    const supplements = SUPPLEMENTS[goal];
+    if (!supplements || supplements.length === 0) {
+        return '';
+    }
+
+    const goalText = {
+        'emagrecer': 'Weight Loss',
+        'manter': 'Maintenance',
+        'ganharMassa': 'Muscle Gain'
+    };
+
+    return `
+        <div class="supplements-header">
+            <h3>Recommended Supplements for ${goalText[goal]}</h3>
+            <p>These supplements can help support your fitness goals when combined with proper nutrition and training.</p>
+        </div>
+        <div class="supplements-grid">
+            ${supplements.map(supp => `
+                <div class="supplement-card">
+                    <div class="supplement-icon">${supp.icon}</div>
+                    <h4 class="supplement-name">${supp.name}</h4>
+                    <p class="supplement-description">${supp.description}</p>
+                    <ul class="supplement-benefits">
+                        ${supp.benefits.map(benefit => `<li>✓ ${benefit}</li>`).join('')}
+                    </ul>
+                    <div class="supplement-timing">
+                        <strong>When to take:</strong> ${supp.timing}
+                    </div>
+                    <a href="${supp.link}" class="supplement-link btn-secondary-small">Learn More</a>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 // ============================================
 // MODAL FUNCTIONS
 // ============================================
@@ -422,8 +462,12 @@ function openRecipeModal(recipeId) {
                         src="https://www.youtube.com/embed/${recipe.youtubeId}"
                         title="${recipe.name} Tutorial"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen>
+                        allowfullscreen
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     </iframe>
+                    <div class="video-fallback-message" style="display:none;">
+                        <p>Video unavailable. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(recipe.name + ' recipe')}" target="_blank" rel="noopener">Search on YouTube</a></p>
+                    </div>
                 </div>
             </div>
 
@@ -508,12 +552,16 @@ function openWorkoutModal(workoutIndex) {
                     }).join('');
 
                     // Create animation display - video if available, otherwise SVG
+                    const videoId = `video-${index}-${Date.now()}`;
                     const animationDisplay = gifUrl ? `
                         <div class="exercise-video-demo">
-                            <video autoplay loop muted playsinline class="exercise-demo-video">
-                                <source src="${gifUrl}" type="video/mp4">
-                                ${exerciseData.svg}
+                            <video id="${videoId}" autoplay loop muted playsinline class="exercise-demo-video">
+                                <source src="${gifUrl}" type="video/mp4" onerror="handleVideoError('${videoId}')">
+                                Your browser does not support the video tag.
                             </video>
+                            <div class="exercise-svg-wrapper video-fallback hidden">
+                                ${exerciseData.svg}
+                            </div>
                         </div>
                     ` : `
                         <div class="exercise-svg-wrapper">
@@ -549,6 +597,9 @@ function openWorkoutModal(workoutIndex) {
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowfullscreen>
                                         </iframe>
+                                        <div class="video-fallback-message" style="display:none;">
+                                            <p>Video unavailable. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' exercise tutorial')}" target="_blank" rel="noopener">Search on YouTube</a></p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -560,6 +611,9 @@ function openWorkoutModal(workoutIndex) {
     `;
 
     openModal('workoutModal');
+
+    // Setup video error handlers after modal is opened
+    setTimeout(setupVideoErrorHandlers, 100);
 }
 
 /**
@@ -568,6 +622,40 @@ function openWorkoutModal(workoutIndex) {
 function toggleExerciseContent(element) {
     const card = element.closest('.exercise-card');
     card.classList.toggle('open');
+}
+
+/**
+ * Handles video load errors by showing SVG fallback
+ */
+function handleVideoError(videoId) {
+    const videoElement = document.getElementById(videoId);
+    if (videoElement) {
+        const container = videoElement.closest('.exercise-video-demo');
+        if (container) {
+            videoElement.style.display = 'none';
+            const fallback = container.querySelector('.video-fallback');
+            if (fallback) {
+                fallback.classList.remove('hidden');
+            }
+        }
+    }
+}
+
+/**
+ * Sets up video error handlers after modal is opened
+ */
+function setupVideoErrorHandlers() {
+    document.querySelectorAll('.exercise-demo-video').forEach(video => {
+        video.addEventListener('error', function() {
+            handleVideoError(this.id);
+        });
+        // Also check if video failed to load after a timeout
+        setTimeout(() => {
+            if (video.readyState === 0 || video.networkState === 3) {
+                handleVideoError(video.id);
+            }
+        }, 3000);
+    });
 }
 
 /**
@@ -614,8 +702,17 @@ function toggleExerciseVideo(element) {
 function handleFormSubmit(e) {
     e.preventDefault();
 
+    // Check if user has a locked plan
+    if (typeof isPlanLocked === 'function' && isPlanLocked()) {
+        const daysRemaining = typeof getPlanDaysRemaining === 'function' ? getPlanDaysRemaining() : 0;
+        alert(`Your plan is still active! You have ${daysRemaining} day(s) remaining. You can generate a new plan after your current plan expires.`);
+        return;
+    }
+
     // Collect form data
     const formData = new FormData(form);
+    const planDuration = parseInt(formData.get('planDuration')) || 30;
+
     userData = {
         name: formData.get('nome'),
         age: parseInt(formData.get('idade')),
@@ -629,7 +726,8 @@ function handleFormSubmit(e) {
         workoutTime: formData.get('horarioTreino'),
         goal: formData.get('objetivo'),
         experience: formData.get('experiencia'),
-        restrictions: formData.getAll('restricoes')
+        restrictions: formData.getAll('restricoes'),
+        planDuration: planDuration
     };
 
     // Calculate values
@@ -638,20 +736,38 @@ function handleFormSubmit(e) {
     const calories = adjustCaloriesForGoal(tdee, userData.goal);
     const macros = calculateMacros(calories, userData.goal, userData.weight);
 
+    // Store calculated values globally
+    calculatedValues = { bmr, tdee, calories, macros };
+
     // Generate content
     document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
     document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
     document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
     document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal);
+    document.getElementById('supplementsSection').innerHTML = generateSupplementsSection(userData.goal);
     document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
 
     // Show results
     formSection.style.display = 'none';
     resultsSection.classList.remove('hidden');
 
+    // Save plan if user is logged in
+    if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof saveUserPlan === 'function') {
+        saveUserPlan({
+            userData: userData,
+            calculations: calculatedValues,
+            planDuration: planDuration
+        });
+    }
+
     // Update premium UI
     if (typeof updatePremiumUI === 'function') {
         updatePremiumUI();
+    }
+
+    // Update plan status UI
+    if (typeof updatePlanStatusUI === 'function') {
+        updatePlanStatusUI();
     }
 
     // Scroll to results
@@ -662,12 +778,59 @@ function handleFormSubmit(e) {
  * Resets form and returns to start
  */
 function resetForm() {
+    // Check if plan is locked
+    if (typeof isPlanLocked === 'function' && isPlanLocked()) {
+        const daysRemaining = typeof getPlanDaysRemaining === 'function' ? getPlanDaysRemaining() : 0;
+        alert(`Your plan is still active! You have ${daysRemaining} day(s) remaining. You cannot create a new plan until your current plan expires.`);
+        return;
+    }
+
     form.reset();
     resultsSection.classList.add('hidden');
     formSection.style.display = 'block';
 
     // Scroll to form
     document.getElementById('form-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Loads existing plan from localStorage and displays it
+ */
+function loadExistingPlan() {
+    if (typeof loadUserPlan !== 'function') return;
+
+    const plan = loadUserPlan();
+    if (!plan || !plan.userData || !plan.calculations) return;
+
+    // Check if plan is still active
+    const status = typeof getPlanStatus === 'function' ? getPlanStatus() : { isActive: false };
+    if (!status.isActive) return;
+
+    // Restore userData and calculations
+    userData = plan.userData;
+    calculatedValues = plan.calculations;
+
+    const { bmr, tdee, calories, macros } = calculatedValues;
+
+    // Regenerate content with saved data
+    document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
+    document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
+    document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
+    document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal);
+    document.getElementById('supplementsSection').innerHTML = generateSupplementsSection(userData.goal);
+    document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
+
+    // Show results
+    formSection.style.display = 'none';
+    resultsSection.classList.remove('hidden');
+
+    // Update UI
+    if (typeof updatePremiumUI === 'function') {
+        updatePremiumUI();
+    }
+    if (typeof updatePlanStatusUI === 'function') {
+        updatePlanStatusUI();
+    }
 }
 
 // ============================================
@@ -697,6 +860,19 @@ inputs.forEach(input => {
     input.addEventListener('input', function() {
         this.style.borderColor = 'var(--border-color)';
     });
+});
+
+// Load existing plan on page load (if user is logged in)
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for auth.js to initialize
+    setTimeout(() => {
+        if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+            loadExistingPlan();
+        }
+        if (typeof updatePlanStatusUI === 'function') {
+            updatePlanStatusUI();
+        }
+    }, 100);
 });
 
 console.log('NutriPlan loaded successfully! 🥗');
