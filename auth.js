@@ -150,7 +150,7 @@ async function signInWithGoogle() {
 
         // Check for pending form data
         const pendingData = getPendingFormData();
-        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
 
         if (pendingData) {
             // Clear pending data
@@ -159,13 +159,13 @@ async function signInWithGoogle() {
             if (typeof generateAndDisplayResults === 'function') {
                 generateAndDisplayResults(pendingData);
             }
-        } else if (currentPage === 'planner.html') {
+        } else if (currentPage === 'planner') {
             // No pending data on planner - check if user has existing plan
             const existingPlan = loadUserPlan();
             if (existingPlan && isPlanLocked()) {
                 window.location.href = 'my-plan.html';
             }
-        } else if (currentPage === 'my-plan.html') {
+        } else if (currentPage === 'my-plan') {
             // On my-plan page, load existing plan
             if (typeof loadExistingPlan === 'function') {
                 loadExistingPlan();
@@ -331,8 +331,8 @@ async function logoutUser() {
     updatePlanStatusUI();
 
     // Redirect to landing page after logout
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    if (currentPage === 'my-plan.html') {
+    const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
+    if (currentPage === 'my-plan') {
         window.location.href = 'index.html';
     }
 }
@@ -526,7 +526,7 @@ function updateNavAuth() {
     if (!navAuth) return;
 
     const user = getCurrentUser();
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
 
     if (user) {
         navAuth.innerHTML = `
@@ -583,7 +583,7 @@ function updatePlanStatusUI() {
     const status = getPlanStatus();
     const banner = document.getElementById('planStatusBanner');
     const btnRefazer = document.getElementById('btnRefazer');
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
 
     if (banner) {
         if (status.isActive) {
@@ -629,21 +629,32 @@ function switchAuthTab(tab) {
     const registerForm = document.getElementById('registerForm');
     const tabs = document.querySelectorAll('.auth-tab');
 
+    if (!loginForm || !registerForm) {
+        console.error('Auth forms not found');
+        return;
+    }
+
     tabs.forEach(t => t.classList.remove('active'));
 
     if (tab === 'login') {
         loginForm.classList.remove('hidden');
+        loginForm.style.display = 'block';
         registerForm.classList.add('hidden');
-        tabs[0].classList.add('active');
+        registerForm.style.display = 'none';
+        if (tabs[0]) tabs[0].classList.add('active');
     } else {
         loginForm.classList.add('hidden');
+        loginForm.style.display = 'none';
         registerForm.classList.remove('hidden');
-        tabs[1].classList.add('active');
+        registerForm.style.display = 'block';
+        if (tabs[1]) tabs[1].classList.add('active');
     }
 
     // Clear errors
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('registerError').classList.remove('show');
+    const loginError = document.getElementById('loginError');
+    const registerError = document.getElementById('registerError');
+    if (loginError) loginError.classList.remove('show');
+    if (registerError) registerError.classList.remove('show');
 }
 
 /**
@@ -684,7 +695,7 @@ if (loginFormEl) {
 
             // Check for pending form data
             const pendingData = getPendingFormData();
-            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
 
             if (pendingData) {
                 // Clear pending data
@@ -693,7 +704,7 @@ if (loginFormEl) {
                 if (typeof generateAndDisplayResults === 'function') {
                     generateAndDisplayResults(pendingData);
                 }
-            } else if (currentPage === 'planner.html') {
+            } else if (currentPage === 'planner') {
                 // No pending data on planner - check if user has existing plan
                 if (typeof loadUserPlan === 'function') {
                     const existingPlan = loadUserPlan();
@@ -702,7 +713,7 @@ if (loginFormEl) {
                         window.location.href = 'my-plan.html';
                     }
                 }
-            } else if (currentPage === 'my-plan.html') {
+            } else if (currentPage === 'my-plan') {
                 // On my-plan page, load existing plan
                 if (typeof loadExistingPlan === 'function') {
                     loadExistingPlan();
@@ -745,6 +756,7 @@ if (registerFormEl) {
 
             // Check for pending form data
             const pendingData = getPendingFormData();
+            console.log('Pending data after register:', pendingData);
 
             if (pendingData) {
                 // Clear pending data
@@ -752,6 +764,10 @@ if (registerFormEl) {
                 // Generate plan and redirect to my-plan (no welcome message needed)
                 if (typeof generateAndDisplayResults === 'function') {
                     generateAndDisplayResults(pendingData);
+                } else {
+                    // Fallback: redirect anyway
+                    console.warn('generateAndDisplayResults not available, redirecting directly');
+                    window.location.href = 'my-plan.html';
                 }
             } else {
                 // No pending data - show welcome message
@@ -785,9 +801,9 @@ document.addEventListener('DOMContentLoaded', function() {
             updatePlanStatusUI();
 
             // Handle page-specific auth state changes
-            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
 
-            if (currentPage === 'my-plan.html') {
+            if (currentPage === 'my-plan') {
                 if (user) {
                     // User is logged in - initialize my-plan page
                     if (typeof initMyPlanPage === 'function') {
@@ -800,17 +816,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (noPlanMessage) noPlanMessage.classList.remove('hidden');
                     if (planContent) planContent.classList.add('hidden');
                 }
-            } else if (currentPage === 'planner.html') {
-                // On planner page, check if user has pending data or active plan
+            } else if (currentPage === 'planner') {
+                // On planner page, only check if user has active plan
+                // NOTE: Do NOT process pending data here - that's handled by the login/register form handlers
+                // Processing here causes a race condition where both handlers try to generate the plan
                 if (user) {
-                    // Check for pending form data
-                    const pendingData = getPendingFormData();
-                    if (pendingData) {
-                        clearPendingFormData();
-                        if (typeof generateAndDisplayResults === 'function') {
-                            generateAndDisplayResults(pendingData);
-                        }
-                    } else if (typeof isPlanLocked === 'function' && isPlanLocked()) {
+                    if (typeof isPlanLocked === 'function' && isPlanLocked()) {
                         // User has active plan, redirect to my-plan
                         window.location.href = 'my-plan.html';
                     }

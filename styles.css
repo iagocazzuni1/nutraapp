@@ -12,6 +12,11 @@
     box-sizing: border-box;
 }
 
+/* Utility class for hiding elements */
+.hidden {
+    display: none !important;
+}
+
 :root {
     /* Dark Theme Colors */
     --bg-dark: #0a0a0f;

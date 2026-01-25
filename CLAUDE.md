@@ -45,7 +45,7 @@ my-plan.html → "Start Over" → planner.html
 - **app.js** - Core logic: calculations, form handling, content generation. Detects current page via `currentPage` variable and calls appropriate init function (`initPlannerPage()`, `initMyPlanPage()`, `initLandingPage()`). Uses 500ms timeout on DOMContentLoaded to wait for Firebase.
 - **auth.js** - Authentication system with Firebase/localStorage hybrid. Handles login, registration, premium status, plan persistence. Contains `onAuthStateChanged` listener that handles page-specific auth state updates.
 - **data.js** - Static database: recipes, meal plans, workouts, tips, supplements.
-- **exercises.js** - SVG anatomical templates with muscle highlighting for exercise demos.
+- **exercises.js** - SVG anatomical templates with muscle highlighting for exercise demos. Uses `generateAnatomicalSVG()` which generates unique IDs per SVG instance to avoid gradient/filter ID conflicts when multiple exercises are rendered.
 - **exercise-gifs.js** - Maps exercise names to video demonstration URLs.
 
 ### Data Flow

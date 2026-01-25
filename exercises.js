@@ -216,38 +216,64 @@ function getMuscleDisplayName(muscle) {
 
 // Generate SVG with active muscles highlighted
 function generateAnatomicalSVG(view, activeMuscles, primaryMuscle) {
+    // Generate unique ID for this SVG to scope CSS and all gradient/filter IDs
+    const svgId = `svg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const animationName = `musclePulse-${svgId}`;
+
     let template = view === 'back' ? BODY_TEMPLATES.back : BODY_TEMPLATES.front;
 
-    // Create the muscle highlight overlay
+    // Add unique ID to the SVG element
+    template = template.replace('<svg viewBox="0 0 200 350"', `<svg id="${svgId}" viewBox="0 0 200 350"`);
+
+    // Replace hardcoded gradient/filter IDs with unique ones to avoid conflicts
+    // when multiple SVGs are rendered on the same page
+    if (view === 'back') {
+        template = template
+            .replace(/muscleInactiveB/g, `muscleInactiveB-${svgId}`)
+            .replace(/muscleActiveB/g, `muscleActiveB-${svgId}`)
+            .replace(/skinToneB/g, `skinToneB-${svgId}`)
+            .replace(/muscleGlowB/g, `muscleGlowB-${svgId}`);
+    } else {
+        // Use negative lookahead to avoid matching the 'B' variants
+        template = template
+            .replace(/muscleInactive(?!B)/g, `muscleInactive-${svgId}`)
+            .replace(/muscleActive(?!B)/g, `muscleActive-${svgId}`)
+            .replace(/skinTone(?!B)/g, `skinTone-${svgId}`)
+            .replace(/muscleGlow(?!B)/g, `muscleGlow-${svgId}`);
+    }
+
+    // Use the unique gradient/filter IDs
+    const gradientId = view === 'back' ? `muscleActiveB-${svgId}` : `muscleActive-${svgId}`;
+    const filterId = view === 'back' ? `muscleGlowB-${svgId}` : `muscleGlow-${svgId}`;
+
+    // Create the muscle highlight overlay with scoped selectors
     let activeOverlay = '';
 
     activeMuscles.forEach(muscle => {
         const isPrimary = muscle === primaryMuscle;
-        const gradientId = view === 'back' ? 'muscleActiveB' : 'muscleActive';
-        const filterId = view === 'back' ? 'muscleGlowB' : 'muscleGlow';
 
-        // Add style rules to highlight specific muscles
+        // Add style rules scoped to this specific SVG
         activeOverlay += `
             <style>
-                .muscle.${muscle} {
+                #${svgId} .muscle.${muscle} {
                     fill: url(#${gradientId}) !important;
                     ${isPrimary ? `filter: url(#${filterId});` : ''}
                 }
-                .muscle.${muscle}:hover {
+                #${svgId} .muscle.${muscle}:hover {
                     opacity: 0.9;
                 }
             </style>
         `;
     });
 
-    // Also add animation for primary muscle
+    // Also add animation for primary muscle with scoped keyframes
     if (primaryMuscle) {
         activeOverlay += `
             <style>
-                .muscle.${primaryMuscle} {
-                    animation: musclePulse 1.5s ease-in-out infinite;
+                #${svgId} .muscle.${primaryMuscle} {
+                    animation: ${animationName} 1.5s ease-in-out infinite;
                 }
-                @keyframes musclePulse {
+                @keyframes ${animationName} {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.75; }
                 }

@@ -3,8 +3,9 @@
 // Multi-page support: index.html, planner.html, my-plan.html
 // ============================================
 
-// Detect current page
-const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+// Detect current page (handles both with and without .html extension)
+const rawPage = window.location.pathname.split('/').pop() || 'index';
+const currentPage = rawPage.replace('.html', ''); // Normalize to without extension
 
 // DOM Elements (get them conditionally based on page)
 const form = document.getElementById('nutriForm');
@@ -26,7 +27,7 @@ if (form) {
 }
 if (btnRefazer) {
     // On my-plan.html, btnRefazer is a link, so we handle it differently
-    if (currentPage === 'my-plan.html') {
+    if (currentPage === 'my-plan') {
         btnRefazer.addEventListener('click', handleStartOver);
     } else {
         btnRefazer.addEventListener('click', resetForm);
@@ -128,6 +129,24 @@ function adjustCaloriesForGoal(tdee, goal) {
  * Calculates macronutrient distribution
  */
 function calculateMacros(calories, goal, weightLbs) {
+    // Defensive validation - check if MEAL_PLANS[goal] exists
+    if (!MEAL_PLANS || !MEAL_PLANS[goal]) {
+        console.error('Invalid goal or MEAL_PLANS not loaded. Goal:', goal, 'MEAL_PLANS:', typeof MEAL_PLANS);
+        // Return default macro distribution to prevent crash
+        const defaultProteinPerLb = 0.9;
+        const protein = Math.round(weightLbs * defaultProteinPerLb);
+        const proteinCalories = protein * 4;
+        const remainingCalories = calories - proteinCalories;
+        return {
+            protein: protein,
+            carbs: Math.round((remainingCalories * 0.55) / 4), // 55% carbs
+            fat: Math.round((remainingCalories * 0.45) / 9),   // 45% fat
+            proteinCalories: proteinCalories,
+            carbCalories: Math.round(remainingCalories * 0.55),
+            fatCalories: Math.round(remainingCalories * 0.45)
+        };
+    }
+
     const distribution = MEAL_PLANS[goal].distribution;
 
     // Protein based on body weight
@@ -893,6 +912,17 @@ function showAccountPrompt() {
         }
     }
 
+    // Pre-fill name in register form from pending form data (UX improvement)
+    if (typeof getPendingFormData === 'function') {
+        const pendingData = getPendingFormData();
+        if (pendingData && pendingData.name) {
+            const registerNameInput = document.getElementById('registerName');
+            if (registerNameInput) {
+                registerNameInput.value = pendingData.name;
+            }
+        }
+    }
+
     // Show the login modal with register tab active
     openModal('loginModal');
     switchAuthTab('register');
@@ -935,34 +965,54 @@ function processPendingFormData() {
  * Generates and displays results from user data
  */
 function generateAndDisplayResults(data) {
-    userData = data;
+    try {
+        userData = data;
 
-    // Calculate values
-    const bmr = calculateBMR(userData.weight, userData.height, userData.age, userData.sex);
-    const tdee = calculateTDEE(bmr, userData.activityLevel, userData.gymFrequency);
-    const calories = adjustCaloriesForGoal(tdee, userData.goal);
-    const macros = calculateMacros(calories, userData.goal, userData.weight);
+        // Validate required data
+        if (!userData.goal || !userData.weight || !userData.height || !userData.age || !userData.sex) {
+            console.error('Missing required user data:', userData);
+            alert('Error generating plan. Please fill all required fields.');
+            return;
+        }
 
-    // Store calculated values globally
-    calculatedValues = { bmr, tdee, calories, macros };
+        // Calculate values
+        const bmr = calculateBMR(userData.weight, userData.height, userData.age, userData.sex);
+        const tdee = calculateTDEE(bmr, userData.activityLevel, userData.gymFrequency);
+        const calories = adjustCaloriesForGoal(tdee, userData.goal);
+        const macros = calculateMacros(calories, userData.goal, userData.weight);
 
-    // Save plan if user is logged in
-    if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof saveUserPlan === 'function') {
-        saveUserPlan({
-            userData: userData,
-            calculations: calculatedValues,
-            planDuration: userData.planDuration || 30
-        });
+        // Store calculated values globally
+        calculatedValues = { bmr, tdee, calories, macros };
+
+        // Save plan if user is logged in
+        if (typeof isLoggedIn === 'function' && isLoggedIn() && typeof saveUserPlan === 'function') {
+            const saved = saveUserPlan({
+                userData: userData,
+                calculations: calculatedValues,
+                planDuration: userData.planDuration || 30
+            });
+            console.log('Plan saved:', saved);
+        }
+
+        // Debug: log current page detection
+        console.log('Current page detected:', currentPage);
+        console.log('Full pathname:', window.location.pathname);
+
+        // If on planner page, redirect to my-plan page
+        if (currentPage === 'planner' || window.location.pathname.includes('planner')) {
+            console.log('Redirecting to my-plan...');
+            window.location.href = 'my-plan.html';
+            return;
+        }
+
+        // Generate content (for my-plan page)
+        renderPlanContent(userData, calculatedValues);
+    } catch (error) {
+        console.error('Error generating plan:', error);
+        console.error('Error stack:', error.stack);
+        console.error('User data was:', JSON.stringify(data, null, 2));
+        alert('Error generating plan: ' + error.message + '. Please check the browser console for details.');
     }
-
-    // If on planner page, redirect to my-plan page
-    if (currentPage === 'planner.html') {
-        window.location.href = 'my-plan.html';
-        return;
-    }
-
-    // Generate content (for my-plan page)
-    renderPlanContent(userData, calculatedValues);
 }
 
 /**
@@ -971,16 +1021,37 @@ function generateAndDisplayResults(data) {
 function renderPlanContent(userData, calculations) {
     const { bmr, tdee, calories, macros } = calculations;
 
-    document.getElementById('profileSummary').innerHTML = generateProfileSummary(userData);
-    document.getElementById('nutritionNumbers').innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
-    document.getElementById('mealPlan').innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
-    document.getElementById('workoutPlan').innerHTML = generateWorkoutPlan(userData.experience, userData.goal, userData.gymFrequency);
-    document.getElementById('supplementsSection').innerHTML = generateSupplementsSection(userData.goal);
-    document.getElementById('tipsSection').innerHTML = generateTips(userData.goal);
+    // Check if we're on the correct page (my-plan.html) with the required elements
+    const profileSummary = document.getElementById('profileSummary');
+    const nutritionNumbers = document.getElementById('nutritionNumbers');
+    const mealPlanEl = document.getElementById('mealPlan');
+    const workoutPlanEl = document.getElementById('workoutPlan');
+    const supplementsSection = document.getElementById('supplementsSection');
+    const tipsSectionEl = document.getElementById('tipsSection');
+
+    // If elements don't exist, we're on the wrong page - redirect to my-plan
+    if (!profileSummary || !nutritionNumbers || !mealPlanEl) {
+        console.warn('renderPlanContent called on wrong page, redirecting to my-plan.html');
+        window.location.href = 'my-plan.html';
+        return;
+    }
+
+    profileSummary.innerHTML = generateProfileSummary(userData);
+    nutritionNumbers.innerHTML = generateNutritionNumbers(bmr, tdee, calories, macros);
+    mealPlanEl.innerHTML = generateMealPlan(userData.goal, calories, userData.mealsPerDay);
+    if (workoutPlanEl) workoutPlanEl.innerHTML = generateWorkoutPlan(userData.experience, userData.goal, userData.gymFrequency);
+    if (supplementsSection) supplementsSection.innerHTML = generateSupplementsSection(userData.goal);
+    if (tipsSectionEl) tipsSectionEl.innerHTML = generateTips(userData.goal);
 
     // Show plan content, hide no plan message
-    if (planContent) planContent.classList.remove('hidden');
-    if (noPlanMessage) noPlanMessage.classList.add('hidden');
+    if (planContent) {
+        planContent.classList.remove('hidden');
+        planContent.style.display = 'block';
+    }
+    if (noPlanMessage) {
+        noPlanMessage.classList.add('hidden');
+        noPlanMessage.style.display = 'none';
+    }
 
     // Update premium UI
     if (typeof updatePremiumUI === 'function') {
@@ -1042,20 +1113,43 @@ function showMyPlan() {
  * @returns {boolean} - True if plan was loaded, false otherwise
  */
 function loadExistingPlan() {
-    if (typeof loadUserPlan !== 'function') return false;
+    console.log('=== loadExistingPlan called ===');
+
+    if (typeof loadUserPlan !== 'function') {
+        console.log('loadUserPlan function not available');
+        return false;
+    }
+
+    // Debug: show current user
+    if (typeof getCurrentUser === 'function') {
+        console.log('Current user:', getCurrentUser());
+    }
 
     const plan = loadUserPlan();
-    if (!plan || !plan.userData || !plan.calculations) return false;
+    console.log('Loaded plan from localStorage:', plan);
+
+    if (!plan || !plan.userData || !plan.calculations) {
+        console.log('Plan data invalid or missing. Plan:', plan);
+        return false;
+    }
 
     // Check if plan is still active
     const status = typeof getPlanStatus === 'function' ? getPlanStatus() : { isActive: false };
-    if (!status.isActive) return false;
+    console.log('Plan status:', status);
+
+    if (!status.isActive) {
+        console.log('Plan not active (expired or no expiresAt)');
+        return false;
+    }
 
     // Restore userData and calculations
     userData = plan.userData;
     calculatedValues = plan.calculations;
+    console.log('Restored userData:', userData);
+    console.log('Restored calculations:', calculatedValues);
 
     // Render the plan content
+    console.log('Calling renderPlanContent...');
     renderPlanContent(userData, calculatedValues);
 
     return true;
@@ -1121,9 +1215,13 @@ function initPlannerPage() {
  * Initialize the my-plan page (results)
  */
 function initMyPlanPage() {
+    console.log('=== initMyPlanPage called ===');
+
     // Check if user is logged in
+    console.log('isLoggedIn:', typeof isLoggedIn === 'function' ? isLoggedIn() : 'function not available');
     if (typeof isLoggedIn !== 'function' || !isLoggedIn()) {
         // Show no plan message and prompt to login/create plan
+        console.log('User not logged in, showing no plan message');
         showNoPlanMessage();
         return;
     }
@@ -1131,6 +1229,7 @@ function initMyPlanPage() {
     // First, check if there's pending form data to process
     if (typeof getPendingFormData === 'function') {
         const pendingData = getPendingFormData();
+        console.log('Pending data on my-plan:', pendingData);
         if (pendingData) {
             // Clear pending data first to avoid loops
             if (typeof clearPendingFormData === 'function') {
@@ -1143,10 +1242,13 @@ function initMyPlanPage() {
     }
 
     // Try to load existing plan
+    console.log('Trying to load existing plan...');
     const planLoaded = loadExistingPlan();
+    console.log('Plan loaded result:', planLoaded);
 
     if (!planLoaded) {
         // No active plan, show no plan message
+        console.log('No plan loaded, showing no plan message');
         showNoPlanMessage();
     }
 }
@@ -1169,14 +1271,25 @@ function initLandingPage() {
 
 // Page-specific initialization
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOMContentLoaded fired ===');
+    console.log('currentPage variable:', currentPage);
+    console.log('window.location.pathname:', window.location.pathname);
+    console.log('window.location.href:', window.location.href);
+
     // Wait for auth.js and Firebase to initialize (increased timeout)
     setTimeout(() => {
-        // Initialize based on current page
-        if (currentPage === 'planner.html') {
+        console.log('=== 500ms timeout fired, initializing page ===');
+        console.log('Checking currentPage:', currentPage);
+
+        // Initialize based on current page (normalized without .html)
+        if (currentPage === 'planner') {
+            console.log('Detected planner, calling initPlannerPage()');
             initPlannerPage();
-        } else if (currentPage === 'my-plan.html') {
+        } else if (currentPage === 'my-plan') {
+            console.log('Detected my-plan, calling initMyPlanPage()');
             initMyPlanPage();
         } else {
+            console.log('Detected other page (index/landing), calling initLandingPage()');
             initLandingPage();
         }
 
