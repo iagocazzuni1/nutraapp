@@ -5,11 +5,9 @@
   # No build command needed for static site
   publish = "."
 
-# Redirect all traffic to index.html for SPA behavior
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Note: This is a multi-page app, NOT a SPA
+# Each HTML page (index.html, planner.html, my-plan.html) should be served directly
+# No catch-all redirect needed
 
 # Headers for security and caching
 [[headers]]
