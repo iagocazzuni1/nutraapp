@@ -10,6 +10,138 @@ const USER_PLAN_PREFIX = 'nutriplan_user_plan_';
 const PENDING_FORM_KEY = 'nutriplan_pending_form';
 
 // ============================================
+// FIRESTORE SYNC HELPERS
+// ============================================
+
+/**
+ * Check if Firestore is available
+ */
+function isFirestoreAvailable() {
+    return typeof firebaseDb !== 'undefined' && firebaseDb !== null;
+}
+
+/**
+ * Get Firestore document reference for user
+ */
+function getUserDocRef(userId) {
+    if (!isFirestoreAvailable() || !userId) return null;
+    return firebaseDb.collection('users').doc(userId);
+}
+
+/**
+ * Get Firestore document reference for user's plan
+ */
+function getPlanDocRef(userId) {
+    if (!isFirestoreAvailable() || !userId) return null;
+    return firebaseDb.collection('users').doc(userId).collection('plans').doc('current');
+}
+
+/**
+ * Create user document in Firestore
+ */
+async function createUserInFirestore(userData) {
+    if (!isFirestoreAvailable() || !userData?.id) return false;
+    try {
+        await getUserDocRef(userData.id).set({
+            name: userData.name,
+            email: userData.email,
+            isPremium: false,
+            premiumSince: null,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.warn('Firestore create user failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Sync user data from Firestore to localStorage
+ */
+async function syncUserFromFirestore(userId) {
+    if (!isFirestoreAvailable() || !userId) return null;
+    try {
+        const doc = await getUserDocRef(userId).get();
+        if (doc.exists) {
+            const data = doc.data();
+            const localData = localStorage.getItem(CURRENT_USER_KEY);
+            const parsed = localData ? JSON.parse(localData) : {};
+            return {
+                ...parsed,
+                id: userId,
+                name: data.name || parsed.name,
+                email: data.email || parsed.email,
+                isPremium: data.isPremium || false,
+                premiumSince: data.premiumSince || null
+            };
+        }
+        return null;
+    } catch (error) {
+        console.warn('Firestore sync user failed:', error);
+        return null;
+    }
+}
+
+/**
+ * Update premium status in Firestore
+ */
+async function updatePremiumInFirestore(userId, isPremium, premiumSince) {
+    if (!isFirestoreAvailable() || !userId) return false;
+    try {
+        await getUserDocRef(userId).set({
+            isPremium: isPremium,
+            premiumSince: premiumSince
+        }, { merge: true });
+        return true;
+    } catch (error) {
+        console.warn('Firestore update premium failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Sync plan to Firestore
+ */
+async function syncPlanToFirestore(userId, plan) {
+    if (!isFirestoreAvailable() || !userId || !plan) return false;
+    try {
+        await getPlanDocRef(userId).set({
+            ...plan,
+            createdAt: firebase.firestore.Timestamp.fromDate(new Date(plan.createdAt)),
+            expiresAt: firebase.firestore.Timestamp.fromDate(new Date(plan.expiresAt))
+        });
+        return true;
+    } catch (error) {
+        console.warn('Firestore sync plan failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Sync plan from Firestore to localStorage
+ */
+async function syncPlanFromFirestore(userId) {
+    if (!isFirestoreAvailable() || !userId) return null;
+    try {
+        const doc = await getPlanDocRef(userId).get();
+        if (doc.exists) {
+            const plan = doc.data();
+            // Convert Firestore timestamps to ISO strings
+            if (plan.createdAt?.toDate) plan.createdAt = plan.createdAt.toDate().toISOString();
+            if (plan.expiresAt?.toDate) plan.expiresAt = plan.expiresAt.toDate().toISOString();
+            // Update localStorage cache
+            localStorage.setItem(getUserPlanKey(userId), JSON.stringify(plan));
+            return plan;
+        }
+        return null;
+    } catch (error) {
+        console.warn('Firestore sync plan failed:', error);
+        return null;
+    }
+}
+
+// ============================================
 // PENDING FORM DATA FUNCTIONS
 // ============================================
 
@@ -142,6 +274,16 @@ async function signInWithGoogle() {
         // Save user data
         saveCurrentUser(userData);
 
+        // Sync with Firestore
+        syncUserFromFirestore(user.uid).then(firestoreUser => {
+            if (firestoreUser) {
+                saveCurrentUser(firestoreUser);
+                updatePremiumUI();
+            } else {
+                createUserInFirestore(userData);
+            }
+        });
+
         // Close modal and update UI
         closeModal('loginModal');
         updateNavAuth();
@@ -219,6 +361,9 @@ async function registerUser(name, email, password) {
                 createdAt: new Date().toISOString()
             };
             saveCurrentUser(userData);
+
+            // Sync to Firestore
+            createUserInFirestore(userData);
 
             // Also add to localStorage users array as backup for login fallback
             const users = getUsers();
@@ -304,6 +449,16 @@ async function loginUser(email, password) {
             };
             saveCurrentUser(userData);
 
+            // Sync from Firestore (background)
+            syncUserFromFirestore(user.uid).then(firestoreUser => {
+                if (firestoreUser) {
+                    saveCurrentUser(firestoreUser);
+                    updateNavAuth();
+                    updatePremiumUI();
+                }
+            });
+            syncPlanFromFirestore(user.uid);
+
             return { success: true, user: userData };
         } catch (error) {
             // Log error but don't return - try localStorage fallback
@@ -386,6 +541,9 @@ function upgradeToPremium() {
     // Update current user
     saveCurrentUser(user);
 
+    // Sync premium to Firestore
+    updatePremiumInFirestore(user.id, true, user.premiumSince);
+
     // Close premium modal
     closeModal('premiumModal');
 
@@ -421,6 +579,10 @@ function handlePaymentSuccess() {
             }
 
             saveCurrentUser(user);
+
+            // Sync premium to Firestore
+            updatePremiumInFirestore(user.id, true, user.premiumSince);
+
             updateNavAuth();
             updatePremiumUI();
 
@@ -460,6 +622,10 @@ function saveUserPlan(plan) {
     };
 
     localStorage.setItem(getUserPlanKey(user.id), JSON.stringify(planData));
+
+    // Sync to Firestore
+    syncPlanToFirestore(user.id, planData);
+
     return true;
 }
 
@@ -810,7 +976,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Listen for Firebase auth state changes
     if (typeof firebaseAuth !== 'undefined' && firebaseAuth) {
-        firebaseAuth.onAuthStateChanged(function(user) {
+        firebaseAuth.onAuthStateChanged(async function(user) {
+            if (user) {
+                // Sync from Firestore on login
+                const firestoreUser = await syncUserFromFirestore(user.uid);
+                if (firestoreUser) {
+                    saveCurrentUser(firestoreUser);
+                }
+                await syncPlanFromFirestore(user.uid);
+            }
+
             updateNavAuth();
             updatePremiumUI();
             updatePlanStatusUI();

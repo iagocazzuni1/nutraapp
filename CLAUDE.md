@@ -43,7 +43,7 @@ my-plan.html → "Start Over" → planner.html
 ### Key JavaScript Files
 
 - **app.js** - Core logic: calculations, form handling, content generation. Detects current page via `currentPage` variable and calls appropriate init function (`initPlannerPage()`, `initMyPlanPage()`, `initLandingPage()`). Uses 500ms timeout on DOMContentLoaded to wait for Firebase.
-- **auth.js** - Authentication system with Firebase/localStorage hybrid. Handles login, registration, premium status, plan persistence. Contains `onAuthStateChanged` listener that handles page-specific auth state updates.
+- **auth.js** - Authentication system with Firebase/localStorage hybrid. Handles login, registration, premium status, plan persistence. Contains `onAuthStateChanged` listener that handles page-specific auth state updates. Login always falls back to localStorage if Firebase fails. Premium status is checked in both `nutriplan_current_user` and `nutriplan_users` array to persist across logout.
 - **data.js** - Static database: recipes, meal plans, workouts, tips, supplements.
 - **exercises.js** - SVG anatomical templates with muscle highlighting for exercise demos. Uses `generateAnatomicalSVG()` which generates unique IDs per SVG instance to avoid gradient/filter ID conflicts when multiple exercises are rendered.
 - **exercise-gifs.js** - Maps exercise names to video demonstration URLs.
@@ -125,9 +125,17 @@ The auth flow across pages requires careful timing due to Firebase async initial
 ### Test Premium Features (browser console)
 
 ```javascript
+// Set premium (persists across logout)
 let user = JSON.parse(localStorage.getItem('nutriplan_current_user'));
 user.isPremium = true;
 localStorage.setItem('nutriplan_current_user', JSON.stringify(user));
+
+let users = JSON.parse(localStorage.getItem('nutriplan_users') || '[]');
+let idx = users.findIndex(u => u.email === user.email);
+if (idx !== -1) {
+    users[idx].isPremium = true;
+    localStorage.setItem('nutriplan_users', JSON.stringify(users));
+}
 location.reload();
 ```
 
@@ -157,10 +165,36 @@ console.log('User plan:', loadUserPlan());
 console.log('Plan locked:', isPlanLocked());
 ```
 
+### Debug Firestore Sync
+
+```javascript
+// Test Firestore sync (requires Firebase Auth login)
+async function testFirestoreSync() {
+    const user = getCurrentUser();
+    if (!user) { console.log('Not logged in'); return; }
+    console.log('Local user:', user);
+    const fsUser = await syncUserFromFirestore(user.id);
+    console.log('Firestore user:', fsUser);
+    const fsPlan = await syncPlanFromFirestore(user.id);
+    console.log('Firestore plan:', fsPlan);
+}
+testFirestoreSync();
+```
+
 ## Configuration
 
 - **firebase-config.js** - Replace placeholder values with your Firebase project config
 - **stripe-config.js** - Set `STRIPE_PAYMENT_LINK` to your Stripe payment link URL
+
+## Cache Busting
+
+All scripts use query string versioning (`?v=N`) to force browser cache refresh after deployments. When making changes to JS files, increment the version in all HTML files:
+
+```html
+<script src="auth.js?v=5"></script>
+```
+
+Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `data.js`, `exercises.js`, `exercise-gifs.js`, `auth.js`, `app.js`
 
 ## Common Issues
 
@@ -176,6 +210,15 @@ console.log('Plan locked:', isPlanLocked());
 ### "Plan generated but not saved"
 - Verify `isLoggedIn()` returns true before `saveUserPlan()` is called
 - Check `generateAndDisplayResults()` saves plan before redirecting
+
+### "Premium not persisting after logout"
+- Premium must be saved in BOTH `nutriplan_current_user` AND `nutriplan_users` array
+- Use the full premium test command that updates both locations
+- Firebase login checks both locations for premium status
+
+### "Old code running after deploy"
+- Browser may cache old JS files - increment version numbers in HTML (`?v=N`)
+- Hard refresh (Ctrl+Shift+R) to force reload
 
 ## Deployment
 
