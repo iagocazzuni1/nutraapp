@@ -287,28 +287,27 @@ async function loginUser(email, password) {
             const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
 
-            // Get premium status from localStorage
+            // Get premium status from localStorage (current user or users array)
             const localData = localStorage.getItem(CURRENT_USER_KEY);
             const parsed = localData ? JSON.parse(localData) : {};
+
+            // Also check users array for premium status (persists across logout)
+            const users = getUsers();
+            const existingUser = users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
 
             const userData = {
                 id: user.uid,
                 name: user.displayName || 'User',
                 email: user.email,
-                isPremium: parsed.isPremium || false,
-                premiumSince: parsed.premiumSince || null
+                isPremium: parsed.isPremium || (existingUser && existingUser.isPremium) || false,
+                premiumSince: parsed.premiumSince || (existingUser && existingUser.premiumSince) || null
             };
             saveCurrentUser(userData);
 
             return { success: true, user: userData };
         } catch (error) {
-            let message = 'Invalid email or password';
-            if (error.code === 'auth/user-not-found') {
-                message = 'No account found with this email';
-            } else if (error.code === 'auth/wrong-password') {
-                message = 'Invalid password';
-            }
-            return { success: false, message: message };
+            // Log error but don't return - try localStorage fallback
+            console.warn('Firebase login failed, trying localStorage:', error.code);
         }
     }
 
