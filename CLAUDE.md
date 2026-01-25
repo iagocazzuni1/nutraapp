@@ -99,6 +99,30 @@ Content gating via `isPremium()` check in `openRecipeModal()` and `openWorkoutMo
 - `nutriplan_user_plan_{userId}` - User's saved plan
 - `nutriplan_pending_form` - Temporary form data before account creation
 
+### Firestore Sync (Cross-Device)
+
+Uses cache-first pattern: localStorage = cache, Firestore = source of truth.
+
+**Firestore Structure:**
+```
+users/{userId}
+  ├── name, email, isPremium, premiumSince, createdAt
+  └── plans/current/ (userData, calculations, createdAt, expiresAt)
+```
+
+**Key Sync Functions (auth.js):**
+- `syncUserFromFirestore(userId)` - Pulls user data from Firestore to localStorage
+- `syncPlanFromFirestore(userId)` - Pulls plan from Firestore to localStorage
+- `createUserInFirestore(userData)` - Creates user doc on registration
+- `updatePremiumInFirestore(userId, isPremium, premiumSince)` - Syncs premium status
+- `syncPlanToFirestore(userId, plan)` - Pushes plan to Firestore
+
+**Sync Triggers:**
+- Login/Google Sign-In: syncs user + plan FROM Firestore
+- Registration: creates user IN Firestore
+- Save Plan: syncs plan TO Firestore
+- Upgrade Premium: syncs premium TO Firestore
+
 ### Authentication Flow (Critical)
 
 The auth flow across pages requires careful timing due to Firebase async initialization:
@@ -191,7 +215,7 @@ testFirestoreSync();
 All scripts use query string versioning (`?v=N`) to force browser cache refresh after deployments. When making changes to JS files, increment the version in all HTML files:
 
 ```html
-<script src="auth.js?v=5"></script>
+<script src="auth.js?v=6"></script>
 ```
 
 Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `data.js`, `exercises.js`, `exercise-gifs.js`, `auth.js`, `app.js`
@@ -219,6 +243,15 @@ Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `
 ### "Old code running after deploy"
 - Browser may cache old JS files - increment version numbers in HTML (`?v=N`)
 - Hard refresh (Ctrl+Shift+R) to force reload
+
+### "Accounts not appearing in Firestore"
+- Accounts created before Firestore sync only exist in localStorage
+- User must login again to trigger sync and create Firestore document
+
+### "Premium not syncing across devices"
+- Check Firestore rules allow read/write for authenticated user
+- Verify `updatePremiumInFirestore()` is being called
+- Use Debug Firestore Sync code to check sync status
 
 ## Deployment
 

@@ -141,6 +141,34 @@ async function syncPlanFromFirestore(userId) {
     }
 }
 
+/**
+ * Migrate existing localStorage plan to Firestore if not already there
+ * Called on login to ensure old plans get synced
+ */
+async function migratePlanToFirestoreIfNeeded(userId) {
+    if (!isFirestoreAvailable() || !userId) return;
+
+    try {
+        // Check if plan exists in Firestore
+        const doc = await getPlanDocRef(userId).get();
+        if (doc.exists) {
+            // Plan already in Firestore, no migration needed
+            return;
+        }
+
+        // Check if plan exists in localStorage
+        const localPlan = localStorage.getItem(getUserPlanKey(userId));
+        if (localPlan) {
+            const plan = JSON.parse(localPlan);
+            console.log('Migrating existing plan to Firestore...');
+            await syncPlanToFirestore(userId, plan);
+            console.log('Plan migrated successfully!');
+        }
+    } catch (error) {
+        console.warn('Plan migration check failed:', error);
+    }
+}
+
 // ============================================
 // PENDING FORM DATA FUNCTIONS
 // ============================================
@@ -457,7 +485,11 @@ async function loginUser(email, password) {
                     updatePremiumUI();
                 }
             });
-            syncPlanFromFirestore(user.uid);
+
+            // Migrate old plans first, then sync from Firestore
+            migratePlanToFirestoreIfNeeded(user.uid).then(() => {
+                syncPlanFromFirestore(user.uid);
+            });
 
             return { success: true, user: userData };
         } catch (error) {
@@ -983,6 +1015,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (firestoreUser) {
                     saveCurrentUser(firestoreUser);
                 }
+
+                // Migrate old plans if needed, then sync
+                await migratePlanToFirestoreIfNeeded(user.uid);
                 await syncPlanFromFirestore(user.uid);
             }
 
