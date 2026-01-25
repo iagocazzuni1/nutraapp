@@ -220,6 +220,22 @@ async function registerUser(name, email, password) {
             };
             saveCurrentUser(userData);
 
+            // Also add to localStorage users array as backup for login fallback
+            const users = getUsers();
+            const backupUser = {
+                id: user.uid,
+                email: email.toLowerCase(),
+                password: password, // For fallback login
+                name: name,
+                isPremium: false,
+                createdAt: userData.createdAt
+            };
+            // Only add if not already exists
+            if (!users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+                users.push(backupUser);
+                saveUsers(users);
+            }
+
             return { success: true, user: userData };
         } catch (error) {
             let message = 'Registration failed';
