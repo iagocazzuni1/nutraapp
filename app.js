@@ -618,7 +618,14 @@ function openRecipeModal(recipeId) {
                 <div class="recipe-ingredients">
                     <h3>📝 Ingredients</h3>
                     <ul>
-                        ${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                        ${recipe.ingredients.map(ing => `
+                            <li>
+                                <span class="ingredient-text">${ing}</span>
+                                <a href="${getAmazonLink(ing)}" target="_blank" rel="noopener" class="ingredient-amazon-link" title="Buy on Amazon">
+                                    🛒
+                                </a>
+                            </li>
+                        `).join('')}
                     </ul>
                 </div>
                 <div class="recipe-instructions">

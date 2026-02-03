@@ -1732,7 +1732,7 @@ const SUPPLEMENTS = {
             description: "Increases metabolism and helps burn stored fat. Contains caffeine and green tea extract.",
             benefits: ["Accelerates fat burning", "Boosts energy", "Reduces appetite"],
             timing: "Take 30 minutes before workout",
-            link: "#"
+            link: "https://www.amazon.com/s?k=thermogenic+fat+burner&tag=nutraapp-20"
         },
         {
             id: "cla",
@@ -1741,7 +1741,7 @@ const SUPPLEMENTS = {
             description: "Helps reduce body fat while preserving lean muscle mass.",
             benefits: ["Reduces body fat", "Preserves muscle", "Improves body composition"],
             timing: "Take with meals",
-            link: "#"
+            link: "https://www.amazon.com/s?k=cla+supplement&tag=nutraapp-20"
         },
         {
             id: "l-carnitine",
@@ -1750,7 +1750,7 @@ const SUPPLEMENTS = {
             description: "Transports fatty acids to cells for energy production.",
             benefits: ["Enhances fat oxidation", "Increases endurance", "Speeds recovery"],
             timing: "Take 30-60 minutes before cardio",
-            link: "#"
+            link: "https://www.amazon.com/s?k=l-carnitine&tag=nutraapp-20"
         }
     ],
     manter: [
@@ -1761,7 +1761,7 @@ const SUPPLEMENTS = {
             description: "Complete vitamin and mineral formula to fill nutritional gaps.",
             benefits: ["Fills nutritional gaps", "Supports immunity", "Promotes energy"],
             timing: "Take with breakfast",
-            link: "#"
+            link: "https://www.amazon.com/s?k=daily+multivitamin&tag=nutraapp-20"
         },
         {
             id: "omega3",
@@ -1770,7 +1770,7 @@ const SUPPLEMENTS = {
             description: "Essential fatty acids for heart, brain, and joint health.",
             benefits: ["Heart health", "Brain function", "Joint support"],
             timing: "Take with meals",
-            link: "#"
+            link: "https://www.amazon.com/s?k=omega+3+fish+oil&tag=nutraapp-20"
         },
         {
             id: "vitamin-d",
@@ -1779,7 +1779,7 @@ const SUPPLEMENTS = {
             description: "Supports bone health, immune function, and mood.",
             benefits: ["Bone strength", "Immune support", "Mood enhancement"],
             timing: "Take in the morning with fat",
-            link: "#"
+            link: "https://www.amazon.com/s?k=vitamin+d3&tag=nutraapp-20"
         }
     ],
     ganharMassa: [
@@ -1790,7 +1790,7 @@ const SUPPLEMENTS = {
             description: "Fast-absorbing protein for muscle recovery. 25g protein per serving.",
             benefits: ["Muscle growth", "Fast absorption", "Post-workout recovery"],
             timing: "Within 30 minutes post-workout",
-            link: "#"
+            link: "https://www.amazon.com/s?k=whey+protein+isolate&tag=nutraapp-20"
         },
         {
             id: "creatine",
@@ -1799,7 +1799,7 @@ const SUPPLEMENTS = {
             description: "Most researched supplement for strength gains. Increases ATP production.",
             benefits: ["Increases strength", "Muscle volume", "Enhanced performance"],
             timing: "5g daily, any time",
-            link: "#"
+            link: "https://www.amazon.com/s?k=creatine+monohydrate&tag=nutraapp-20"
         },
         {
             id: "mass-gainer",
@@ -1808,7 +1808,7 @@ const SUPPLEMENTS = {
             description: "High-calorie shake for hard gainers. 1000+ calories per serving.",
             benefits: ["Caloric surplus", "Muscle building", "Weight gain"],
             timing: "Between meals or post-workout",
-            link: "#"
+            link: "https://www.amazon.com/s?k=mass+gainer+protein&tag=nutraapp-20"
         },
         {
             id: "bcaa",
@@ -1817,7 +1817,7 @@ const SUPPLEMENTS = {
             description: "Essential amino acids to prevent muscle breakdown.",
             benefits: ["Prevents catabolism", "Reduces soreness", "Supports recovery"],
             timing: "During or after workout",
-            link: "#"
+            link: "https://www.amazon.com/s?k=bcaa+supplement&tag=nutraapp-20"
         }
     ]
 };

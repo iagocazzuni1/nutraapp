@@ -1798,6 +1798,30 @@ header {
     flex-shrink: 0;
 }
 
+/* Amazon affiliate link for ingredients */
+.ingredient-text {
+    flex: 1;
+}
+
+.ingredient-amazon-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #FF9900;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ingredient-amazon-link:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(255, 153, 0, 0.4);
+}
+
 .recipe-instructions ol {
     padding-left: 0;
     list-style: none;
