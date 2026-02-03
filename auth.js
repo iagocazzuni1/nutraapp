@@ -1,5 +1,5 @@
 // ============================================
-// AUTH.JS - Authentication System for NutriPlan
+// AUTH.JS - Authentication System for FluxFit
 // Supports Firebase Auth with localStorage fallback
 // ============================================
 
@@ -584,7 +584,7 @@ function upgradeToPremium() {
     updatePremiumUI();
 
     // Show success message
-    alert('Welcome to NutriPlan Premium! You now have full access to all recipes and workout plans.');
+    alert('Welcome to FluxFit Premium! You now have full access to all recipes and workout plans.');
 }
 
 /**
@@ -621,7 +621,7 @@ function handlePaymentSuccess() {
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
 
-            alert('Payment successful! Welcome to NutriPlan Premium!');
+            alert('Payment successful! Welcome to FluxFit Premium!');
         }
     }
 }
@@ -984,7 +984,7 @@ if (registerFormEl) {
                 }
             } else {
                 // No pending data - show welcome message
-                alert('Account created successfully! Welcome to NutriPlan!');
+                alert('Account created successfully! Welcome to FluxFit!');
             }
         } else {
             errorDiv.textContent = result.message;

@@ -7,7 +7,7 @@
 // 1. Go to https://dashboard.stripe.com
 // 2. Create an account and verify your business
 // 3. Go to Products > Add Product
-//    - Name: "NutriPlan Premium"
+//    - Name: "FluxFit Premium"
 //    - Pricing: $5/month (recurring)
 // 4. Go to Payment Links > Create Payment Link
 // 5. Copy the payment link URL and paste it below

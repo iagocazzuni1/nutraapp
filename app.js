@@ -1,5 +1,5 @@
 // ============================================
-// APP.JS - Main Logic for NutriPlan
+// APP.JS - Main Logic for FluxFit
 // Multi-page support: index.html, planner.html, my-plan.html
 // ============================================
 
@@ -1307,4 +1307,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500); // Increased from 100ms to give Firebase time to initialize
 });
 
-console.log('NutriPlan loaded successfully! 🥗');
+console.log('FluxFit loaded successfully! 💪');

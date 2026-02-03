@@ -1,5 +1,5 @@
 /* ============================================
-   NUTRIPLAN - MODERN DARK THEME
+   FLUXFIT - MODERN DARK THEME
    Bold, vibrant, and visually striking
    ============================================ */
 
@@ -137,19 +137,49 @@ header {
 }
 
 .logo-icon {
-    font-size: 2.2rem;
-    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+    width: 48px;
+    height: 48px;
+    background: var(--gradient-primary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.4);
 }
 
 .logo-text {
-    font-family: var(--font-display);
-    font-size: 1.6rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.75rem;
     font-weight: 800;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: -0.5px;
+}
+
+/* FluxFit Animated Logo */
+.flux-waves {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.wave {
+    width: 4px;
+    background: white;
+    border-radius: 2px;
+    animation: wave 1.5s ease-in-out infinite;
+}
+
+.wave:nth-child(1) { animation-delay: 0s; height: 16px; }
+.wave:nth-child(2) { animation-delay: 0.1s; height: 24px; }
+.wave:nth-child(3) { animation-delay: 0.2s; height: 20px; }
+.wave:nth-child(4) { animation-delay: 0.3s; height: 28px; }
+.wave:nth-child(5) { animation-delay: 0.4s; height: 18px; }
+
+@keyframes wave {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.5); }
 }
 
 /* Nav Auth */

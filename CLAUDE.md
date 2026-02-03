@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NutriPlan is a personalized nutrition and workout planning web application. Users fill out a form with personal data, and the app generates customized meal plans (with recipes) and workout routines based on their goals. Includes a freemium model with premium content gating.
+FluxFit is a personalized nutrition and workout planning web application. Users fill out a form with personal data, and the app generates customized meal plans (with recipes) and workout routines based on their goals. Includes a freemium model with premium content gating.
 
 ## Tech Stack
 
@@ -113,12 +113,13 @@ users/{userId}
 **Key Sync Functions (auth.js):**
 - `syncUserFromFirestore(userId)` - Pulls user data from Firestore to localStorage
 - `syncPlanFromFirestore(userId)` - Pulls plan from Firestore to localStorage
+- `migratePlanToFirestoreIfNeeded(userId)` - Uploads local plan to Firestore if not already there (handles pre-sync plans)
 - `createUserInFirestore(userData)` - Creates user doc on registration
 - `updatePremiumInFirestore(userId, isPremium, premiumSince)` - Syncs premium status
 - `syncPlanToFirestore(userId, plan)` - Pushes plan to Firestore
 
 **Sync Triggers:**
-- Login/Google Sign-In: syncs user + plan FROM Firestore
+- Login/Google Sign-In: migrates local plan if needed, then syncs user + plan FROM Firestore
 - Registration: creates user IN Firestore
 - Save Plan: syncs plan TO Firestore
 - Upgrade Premium: syncs premium TO Firestore
@@ -252,6 +253,11 @@ Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `
 - Check Firestore rules allow read/write for authenticated user
 - Verify `updatePremiumInFirestore()` is being called
 - Use Debug Firestore Sync code to check sync status
+
+### "Plan not appearing on other devices"
+- Plans created before Firestore sync only exist in localStorage on the original device
+- User must login on the original device first to trigger `migratePlanToFirestoreIfNeeded()`
+- After migration, logout/login on other devices will sync the plan
 
 ## Deployment
 
