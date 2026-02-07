@@ -223,29 +223,38 @@ function generateProfileSummary(data) {
         'ganharMassa': 'Muscle Gain'
     };
 
+    // Sanitize user-provided data to prevent XSS
+    const safeName = escapeHtml(data.name ? data.name.split(' ')[0] : '');
+    const safeAge = escapeHtml(String(data.age || ''));
+    const safeWeight = escapeHtml(String(data.weight || ''));
+    const safeHeight = escapeHtml(String(data.height || ''));
+    const safeBmi = escapeHtml(String(bmi || ''));
+    const safeBmiClass = escapeHtml(bmiClass || '');
+    const safeGoal = escapeHtml(goalText[data.goal] || '');
+
     return `
         <div class="profile-item">
-            <div class="value">${data.name.split(' ')[0]}</div>
+            <div class="value">${safeName}</div>
             <div class="label">Name</div>
         </div>
         <div class="profile-item">
-            <div class="value">${data.age}</div>
+            <div class="value">${safeAge}</div>
             <div class="label">Years Old</div>
         </div>
         <div class="profile-item">
-            <div class="value">${data.weight} lbs</div>
+            <div class="value">${safeWeight} lbs</div>
             <div class="label">Current Weight</div>
         </div>
         <div class="profile-item">
-            <div class="value">${data.height}"</div>
+            <div class="value">${safeHeight}"</div>
             <div class="label">Height</div>
         </div>
         <div class="profile-item">
-            <div class="value">${bmi}</div>
-            <div class="label">BMI (${bmiClass})</div>
+            <div class="value">${safeBmi}</div>
+            <div class="label">BMI (${safeBmiClass})</div>
         </div>
         <div class="profile-item">
-            <div class="value">${goalText[data.goal]}</div>
+            <div class="value">${safeGoal}</div>
             <div class="label">Goal</div>
         </div>
     `;
@@ -371,11 +380,11 @@ function generateMealPlan(goal, calories, numMeals) {
                 <div class="meal-dropdown">
                     <div class="meal-recipes">
                         ${recipes.map(recipe => `
-                            <div class="recipe-suggestion" onclick="openRecipeModal('${recipe.id}')">
-                                <span class="recipe-suggestion-icon">${recipe.icon}</span>
+                            <div class="recipe-suggestion" onclick="openRecipeModal('${sanitizeAttribute(recipe.id)}')">
+                                <span class="recipe-suggestion-icon">${escapeHtml(recipe.icon)}</span>
                                 <div class="recipe-suggestion-info">
-                                    <div class="recipe-suggestion-name">${recipe.name}</div>
-                                    <div class="recipe-suggestion-meta">${recipe.calories} kcal • ${recipe.time}</div>
+                                    <div class="recipe-suggestion-name">${escapeHtml(recipe.name)}</div>
+                                    <div class="recipe-suggestion-meta">${escapeHtml(String(recipe.calories))} kcal • ${escapeHtml(recipe.time)}</div>
                                 </div>
                                 <span class="recipe-suggestion-arrow">→</span>
                             </div>
@@ -592,15 +601,26 @@ function openRecipeModal(recipeId) {
 
     if (!recipe) return;
 
+    // Sanitize recipe data for safe HTML rendering
+    const safeIcon = escapeHtml(recipe.icon || '');
+    const safeName = escapeHtml(recipe.name || '');
+    const safeType = escapeHtml(recipe.type || '');
+    const safeTime = escapeHtml(recipe.time || '');
+    const safeServings = escapeHtml(recipe.servings || '');
+    const safeCalories = escapeHtml(String(recipe.calories || 0));
+    const safeProtein = escapeHtml(String(recipe.protein || 0));
+    const safeCarbs = escapeHtml(String(recipe.carbs || 0));
+    const safeFat = escapeHtml(String(recipe.fat || 0));
+
     const modalContent = document.getElementById('recipeModalContent');
     modalContent.innerHTML = `
         <div class="recipe-modal-header">
-            <h2>${recipe.icon} ${recipe.name}</h2>
-            <p>${recipe.type}</p>
+            <h2>${safeIcon} ${safeName}</h2>
+            <p>${safeType}</p>
             <div class="recipe-modal-meta">
-                <span>⏱️ ${recipe.time}</span>
-                <span>👥 ${recipe.servings}</span>
-                <span>🔥 ${recipe.calories} kcal</span>
+                <span>⏱️ ${safeTime}</span>
+                <span>👥 ${safeServings}</span>
+                <span>🔥 ${safeCalories} kcal</span>
             </div>
         </div>
         <div class="recipe-modal-body">
@@ -610,7 +630,7 @@ function openRecipeModal(recipeId) {
                    rel="noopener noreferrer"
                    class="btn-youtube-search">
                     <span class="youtube-icon">▶</span>
-                    Search "${recipe.name}" on YouTube
+                    Search "${safeName}" on YouTube
                 </a>
             </div>
 
@@ -620,8 +640,8 @@ function openRecipeModal(recipeId) {
                     <ul>
                         ${recipe.ingredients.map(ing => `
                             <li>
-                                <span class="ingredient-text">${ing}</span>
-                                <a href="${getAmazonLink(ing)}" target="_blank" rel="noopener" class="ingredient-amazon-link" title="Buy on Amazon">
+                                <span class="ingredient-text">${escapeHtml(ing)}</span>
+                                <a href="${escapeHtml(getAmazonLink(ing))}" target="_blank" rel="noopener" class="ingredient-amazon-link" title="Buy on Amazon">
                                     🛒
                                 </a>
                             </li>
@@ -631,26 +651,26 @@ function openRecipeModal(recipeId) {
                 <div class="recipe-instructions">
                     <h3>👨‍🍳 Instructions</h3>
                     <ol>
-                        ${recipe.instructions.map(step => `<li>${step}</li>`).join('')}
+                        ${recipe.instructions.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
                     </ol>
                 </div>
             </div>
 
             <div class="recipe-macros-grid">
                 <div class="macro-card calories">
-                    <div class="value">${recipe.calories}</div>
+                    <div class="value">${safeCalories}</div>
                     <div class="label">Calories</div>
                 </div>
                 <div class="macro-card protein">
-                    <div class="value">${recipe.protein}g</div>
+                    <div class="value">${safeProtein}g</div>
                     <div class="label">Protein</div>
                 </div>
                 <div class="macro-card carbs">
-                    <div class="value">${recipe.carbs}g</div>
+                    <div class="value">${safeCarbs}g</div>
                     <div class="label">Carbs</div>
                 </div>
                 <div class="macro-card fat">
-                    <div class="value">${recipe.fat}g</div>
+                    <div class="value">${safeFat}g</div>
                     <div class="label">Fat</div>
                 </div>
             </div>
@@ -863,22 +883,31 @@ function handleFormSubmit(e) {
     const formData = new FormData(form);
     const planDuration = parseInt(formData.get('planDuration')) || 30;
 
-    userData = {
+    // Build raw data object
+    const rawData = {
         name: formData.get('nome'),
-        age: parseInt(formData.get('idade')),
+        age: formData.get('idade'),
         sex: formData.get('sexo'),
-        height: parseInt(formData.get('altura')),
-        weight: parseFloat(formData.get('peso')),
-        goalWeight: parseFloat(formData.get('pesoMeta')),
+        height: formData.get('altura'),
+        weight: formData.get('peso'),
+        goalWeight: formData.get('pesoMeta'),
         activityLevel: formData.get('nivelAtividade'),
         gymFrequency: formData.get('frequenciaAcademia'),
-        mealsPerDay: parseInt(formData.get('refeicoesDia')),
+        mealsPerDay: formData.get('refeicoesDia'),
         workoutTime: formData.get('horarioTreino'),
         goal: formData.get('objetivo'),
         experience: formData.get('experiencia'),
         restrictions: formData.getAll('restricoes'),
         planDuration: planDuration
     };
+
+    // Validate and sanitize form data
+    try {
+        userData = validateFormData(rawData);
+    } catch (validationError) {
+        alert(validationError.message);
+        return;
+    }
 
     // Check if user is logged in - if not, save data and show account prompt
     if (typeof isLoggedIn === 'function' && !isLoggedIn()) {

@@ -73,6 +73,7 @@ async function syncUserFromFirestore(userId) {
                 name: data.name || parsed.name,
                 email: data.email || parsed.email,
                 isPremium: data.isPremium || false,
+                premiumValidated: data.isPremium || false, // Mark as validated from Firestore
                 premiumSince: data.premiumSince || null
             };
         }
@@ -254,10 +255,66 @@ function isLoggedIn() {
 
 /**
  * Check if user has premium
+ * Validates premium status against Firestore or requires stripeSessionId
  */
 function isPremium() {
     const user = getCurrentUser();
-    return user && user.isPremium === true;
+    if (!user || user.isPremium !== true) {
+        return false;
+    }
+
+    // Premium must be validated by Firestore OR have a valid stripeSessionId
+    // This prevents localStorage manipulation from bypassing payment
+    if (user.premiumValidated === true) {
+        return true;
+    }
+
+    if (user.stripeSessionId && typeof user.stripeSessionId === 'string' && user.stripeSessionId.length > 0) {
+        return true;
+    }
+
+    // Premium flag exists but not validated - user may have manipulated localStorage
+    // Don't grant premium access without proper validation
+    return false;
+}
+
+/**
+ * Validates premium status against Firestore
+ * Called on login and periodically to ensure premium is legitimate
+ */
+async function validatePremiumStatus() {
+    const user = getCurrentUser();
+    if (!user) return false;
+
+    // Check Firestore for premium status
+    if (isFirestoreAvailable()) {
+        try {
+            const firestoreUser = await syncUserFromFirestore(user.id);
+            if (firestoreUser && firestoreUser.isPremium === true) {
+                // Firestore confirms premium - mark as validated
+                user.isPremium = true;
+                user.premiumValidated = true;
+                user.premiumSince = firestoreUser.premiumSince;
+                saveCurrentUser(user);
+                return true;
+            } else if (firestoreUser && firestoreUser.isPremium !== true) {
+                // Firestore says not premium - remove local premium
+                user.isPremium = false;
+                user.premiumValidated = false;
+                saveCurrentUser(user);
+                return false;
+            }
+        } catch (error) {
+            console.warn('Premium validation failed:', error);
+        }
+    }
+
+    // Check if user has stripeSessionId (fallback for localStorage-only)
+    if (user.stripeSessionId && typeof user.stripeSessionId === 'string') {
+        return true;
+    }
+
+    return false;
 }
 
 // ============================================
@@ -395,10 +452,13 @@ async function registerUser(name, email, password) {
 
             // Also add to localStorage users array as backup for login fallback
             const users = getUsers();
+            const salt = generateSalt();
+            const passwordHash = await hashPassword(password, salt);
             const backupUser = {
                 id: user.uid,
                 email: email.toLowerCase(),
-                password: password, // For fallback login
+                passwordHash: passwordHash, // Securely hashed password
+                salt: salt,
                 name: name,
                 isPremium: false,
                 createdAt: userData.createdAt
@@ -431,12 +491,17 @@ async function registerUser(name, email, password) {
         return { success: false, message: 'Email already registered' };
     }
 
-    // Create new user
+    // Hash the password before storing
+    const salt = generateSalt();
+    const passwordHash = await hashPassword(password, salt);
+
+    // Create new user with hashed password
     const newUser = {
         id: Date.now(),
         name: name,
         email: email.toLowerCase(),
-        password: password, // In production, this should be hashed!
+        passwordHash: passwordHash, // Securely hashed password
+        salt: salt,
         isPremium: false,
         createdAt: new Date().toISOString()
     };
@@ -501,12 +566,39 @@ async function loginUser(email, password) {
     // Fallback to localStorage
     const users = getUsers();
 
-    const user = users.find(u =>
-        u.email.toLowerCase() === email.toLowerCase() &&
-        u.password === password
-    );
+    // Find user by email
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
     if (!user) {
+        return { success: false, message: 'Invalid email or password' };
+    }
+
+    // Check password - support both old plain-text and new hashed passwords
+    let passwordValid = false;
+
+    if (user.passwordHash && user.salt) {
+        // New hashed password system
+        passwordValid = await verifyPassword(password, user.passwordHash, user.salt);
+    } else if (user.password) {
+        // Legacy plain-text password - migrate to hashed on successful login
+        if (user.password === password) {
+            passwordValid = true;
+
+            // Migrate to hashed password
+            const salt = generateSalt();
+            const passwordHash = await hashPassword(password, salt);
+            const userIndex = users.findIndex(u => u.id === user.id);
+            if (userIndex !== -1) {
+                users[userIndex].passwordHash = passwordHash;
+                users[userIndex].salt = salt;
+                delete users[userIndex].password; // Remove plain-text password
+                saveUsers(users);
+                console.log('Password migrated to secure hash');
+            }
+        }
+    }
+
+    if (!passwordValid) {
         return { success: false, message: 'Invalid email or password' };
     }
 
@@ -558,33 +650,10 @@ function upgradeToPremium() {
         return;
     }
 
-    // Demo mode - instantly upgrade (for testing only)
-    user.isPremium = true;
-    user.premiumSince = new Date().toISOString();
-
-    // Update in users list (localStorage)
-    const users = getUsers();
-    const index = users.findIndex(u => u.id === user.id);
-    if (index !== -1) {
-        users[index] = user;
-        saveUsers(users);
-    }
-
-    // Update current user
-    saveCurrentUser(user);
-
-    // Sync premium to Firestore
-    updatePremiumInFirestore(user.id, true, user.premiumSince);
-
-    // Close premium modal
+    // Stripe not configured - show error message
+    // SECURITY: Demo mode removed to prevent premium bypass
+    alert('Premium upgrades are temporarily unavailable. Please try again later.');
     closeModal('premiumModal');
-
-    // Update UI
-    updateNavAuth();
-    updatePremiumUI();
-
-    // Show success message
-    alert('Welcome to FluxFit Premium! You now have full access to all recipes and workout plans.');
 }
 
 /**
@@ -742,9 +811,13 @@ function updateNavAuth() {
     const currentPage = (window.location.pathname.split('/').pop() || 'index').replace('.html', '');
 
     if (user) {
+        // Sanitize user name to prevent XSS
+        const safeName = typeof escapeHtml === 'function'
+            ? escapeHtml(user.name ? user.name.split(' ')[0] : 'User')
+            : (user.name ? user.name.split(' ')[0] : 'User');
         navAuth.innerHTML = `
             <div class="user-info">
-                <span class="user-name">Hi, ${user.name.split(' ')[0]}!</span>
+                <span class="user-name">Hi, ${safeName}!</span>
                 ${user.isPremium ? '<span class="premium-status">Premium</span>' : ''}
                 <a href="my-plan.html" class="btn-my-plan">My Plan</a>
                 <button class="btn-logout" onclick="logoutUser()">Logout</button>

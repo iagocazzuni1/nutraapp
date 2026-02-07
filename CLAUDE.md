@@ -47,6 +47,8 @@ my-plan.html → "Start Over" → planner.html
 - **data.js** - Static database: recipes, meal plans, workouts, tips, supplements.
 - **exercises.js** - SVG anatomical templates with muscle highlighting for exercise demos. Uses `generateAnatomicalSVG()` which generates unique IDs per SVG instance to avoid gradient/filter ID conflicts when multiple exercises are rendered.
 - **exercise-gifs.js** - Maps exercise names to video demonstration URLs.
+- **affiliate-links.js** - Amazon affiliate link generator. Uses `getAmazonLink(ingredient)` to create search URLs with affiliate tag (`nutraapp-20`). Strips quantities and measurements from ingredient text for cleaner search terms.
+- **security-utils.js** - Security utility functions including password hashing (PBKDF2), HTML escaping for XSS prevention, and form data validation.
 
 ### Data Flow
 
@@ -150,19 +152,24 @@ The auth flow across pages requires careful timing due to Firebase async initial
 ### Test Premium Features (browser console)
 
 ```javascript
-// Set premium (persists across logout)
+// Set premium for testing (requires premiumValidated or stripeSessionId)
 let user = JSON.parse(localStorage.getItem('nutriplan_current_user'));
 user.isPremium = true;
+user.premiumValidated = true;  // Required for premium to work
+// OR use: user.stripeSessionId = 'test_session_123';
 localStorage.setItem('nutriplan_current_user', JSON.stringify(user));
 
 let users = JSON.parse(localStorage.getItem('nutriplan_users') || '[]');
 let idx = users.findIndex(u => u.email === user.email);
 if (idx !== -1) {
     users[idx].isPremium = true;
+    users[idx].premiumValidated = true;
     localStorage.setItem('nutriplan_users', JSON.stringify(users));
 }
 location.reload();
 ```
+
+**Note:** Simply setting `isPremium = true` without `premiumValidated` or `stripeSessionId` will NOT grant premium access (security feature).
 
 ### Test Plan Expiration (browser console)
 
@@ -219,7 +226,45 @@ All scripts use query string versioning (`?v=N`) to force browser cache refresh 
 <script src="auth.js?v=6"></script>
 ```
 
-Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `data.js`, `exercises.js`, `exercise-gifs.js`, `auth.js`, `app.js`
+Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `data.js`, `exercises.js`, `exercise-gifs.js`, `affiliate-links.js`, `security-utils.js`, `auth.js`, `app.js`
+
+## Security
+
+### Password Storage
+
+Passwords are hashed using PBKDF2 with SHA-256 (100,000 iterations) via the Web Crypto API. Each user has a unique salt stored alongside their password hash. Legacy plain-text passwords are automatically migrated to hashed format on successful login.
+
+**User object structure:**
+```javascript
+{
+    id: "...",
+    email: "...",
+    passwordHash: "base64-encoded-hash",  // Replaces plain 'password'
+    salt: "base64-encoded-salt",
+    // ...
+}
+```
+
+### Premium Validation
+
+Premium status requires server-side validation to prevent localStorage manipulation:
+- `premiumValidated: true` - Set when premium is confirmed from Firestore
+- `stripeSessionId` - Required for localStorage-only premium (Stripe payment proof)
+- The `isPremium()` function checks both flags before granting access
+
+### XSS Prevention
+
+All user-provided data is escaped before rendering in HTML:
+- `escapeHtml(str)` - Escapes HTML special characters
+- `sanitizeAttribute(str)` - Escapes strings for use in HTML attributes
+- `validateFormData(data)` - Validates and sanitizes form input
+
+### Form Validation
+
+Form data is validated before processing:
+- Type checking (strings, numbers, valid enum values)
+- Range validation (age 13-120, weight 50-700 lbs, etc.)
+- Sanitization of string inputs (max lengths, trimming)
 
 ## Common Issues
 
