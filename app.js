@@ -555,7 +555,7 @@ function generateSupplementsSection(goal) {
                     <div class="supplement-timing">
                         <strong>When to take:</strong> ${supp.timing}
                     </div>
-                    <a href="${supp.link}" class="supplement-link btn-secondary-small">Learn More</a>
+                    <a href="${supp.link}" target="_blank" class="supplement-link btn-secondary-small">🛒 Buy on Amazon</a>
                 </div>
             `).join('')}
         </div>
