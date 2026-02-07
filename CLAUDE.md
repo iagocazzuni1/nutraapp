@@ -74,6 +74,13 @@ my-plan.html → "Start Over" → planner.html
 - Frequency 3-4 → 3 workout days
 - Frequency 5-6+ → 4 workout days
 
+### Nutritional Calculations (app.js)
+
+- **BMR**: Mifflin-St Jeor formula (different for male/female)
+- **TDEE**: BMR × activity factor + gym adjustment
+- **Goal adjustment**: Weight loss = TDEE × 0.80, Muscle gain = TDEE × 1.15
+- **Macros**: Protein based on body weight (0.8-1.0g/lb), remaining split between carbs/fat
+
 ### Plan Persistence
 
 Plans are locked for a duration (30/60/90 days):
@@ -218,12 +225,16 @@ testFirestoreSync();
 - **firebase-config.js** - Replace placeholder values with your Firebase project config
 - **stripe-config.js** - Set `STRIPE_PAYMENT_LINK` to your Stripe payment link URL
 
+### Affiliate Configuration
+
+Amazon affiliate tag is hardcoded in `affiliate-links.js` as `nutraapp-20`. To change, update the `AFFILIATE_TAG` constant.
+
 ## Cache Busting
 
 All scripts use query string versioning (`?v=N`) to force browser cache refresh after deployments. When making changes to JS files, increment the version in all HTML files:
 
 ```html
-<script src="auth.js?v=6"></script>
+<script src="auth.js?v=8"></script>
 ```
 
 Files with versioning: `styles.css`, `firebase-config.js`, `stripe-config.js`, `data.js`, `exercises.js`, `exercise-gifs.js`, `affiliate-links.js`, `security-utils.js`, `auth.js`, `app.js`
