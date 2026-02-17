@@ -230,7 +230,9 @@ function getCurrentUser() {
             name: fbUser.displayName || parsed.name || 'User',
             email: fbUser.email,
             isPremium: parsed.isPremium || false,
-            premiumSince: parsed.premiumSince || null
+            premiumValidated: parsed.premiumValidated || false,
+            premiumSince: parsed.premiumSince || null,
+            stripeSessionId: parsed.stripeSessionId || null
         };
     }
 
