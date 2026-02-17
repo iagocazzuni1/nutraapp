@@ -337,7 +337,7 @@ async function signInWithGoogle() {
         const user = result.user;
 
         // Create userData object
-        const userData = {
+        let userData = {
             id: user.uid,
             name: user.displayName || 'User',
             email: user.email,
@@ -359,15 +359,18 @@ async function signInWithGoogle() {
         // Save user data
         saveCurrentUser(userData);
 
-        // Sync with Firestore
-        syncUserFromFirestore(user.uid).then(firestoreUser => {
+        // Sync with Firestore BEFORE updating UI (ensures premiumValidated is set)
+        try {
+            const firestoreUser = await syncUserFromFirestore(user.uid);
             if (firestoreUser) {
+                userData = firestoreUser;
                 saveCurrentUser(firestoreUser);
-                updatePremiumUI();
             } else {
-                createUserInFirestore(userData);
+                await createUserInFirestore(userData);
             }
-        });
+        } catch (e) {
+            console.warn('Firestore sync during Google login failed:', e);
+        }
 
         // Close modal and update UI
         closeModal('loginModal');
@@ -533,7 +536,7 @@ async function loginUser(email, password) {
             const users = getUsers();
             const existingUser = users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
 
-            const userData = {
+            let userData = {
                 id: user.uid,
                 name: user.displayName || 'User',
                 email: user.email,
@@ -542,14 +545,16 @@ async function loginUser(email, password) {
             };
             saveCurrentUser(userData);
 
-            // Sync from Firestore (background)
-            syncUserFromFirestore(user.uid).then(firestoreUser => {
+            // Sync from Firestore BEFORE returning (ensures premiumValidated is set)
+            try {
+                const firestoreUser = await syncUserFromFirestore(user.uid);
                 if (firestoreUser) {
+                    userData = firestoreUser;
                     saveCurrentUser(firestoreUser);
-                    updateNavAuth();
-                    updatePremiumUI();
                 }
-            });
+            } catch (e) {
+                console.warn('Firestore sync during login failed:', e);
+            }
 
             // Migrate old plans first, then sync from Firestore
             migratePlanToFirestoreIfNeeded(user.uid).then(() => {
@@ -645,6 +650,10 @@ function upgradeToPremium() {
 
     // Check if Stripe is configured
     if (typeof STRIPE_PAYMENT_LINK !== 'undefined' && STRIPE_PAYMENT_LINK) {
+        // Track checkout initiation (Meta Pixel)
+        if (typeof fbq === 'function') {
+            fbq('track', 'InitiateCheckout', { content_name: 'FluxFit Premium', value: 5.00, currency: 'USD' });
+        }
         // Redirect to Stripe Checkout
         window.location.href = STRIPE_PAYMENT_LINK;
         return;
@@ -686,6 +695,11 @@ function handlePaymentSuccess() {
 
             updateNavAuth();
             updatePremiumUI();
+
+            // Track purchase (Meta Pixel)
+            if (typeof fbq === 'function') {
+                fbq('track', 'Purchase', { content_name: 'FluxFit Premium', value: 5.00, currency: 'USD' });
+            }
 
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -1034,6 +1048,11 @@ if (registerFormEl) {
         const result = await registerUser(name, email, password);
 
         if (result.success) {
+            // Track registration (Meta Pixel)
+            if (typeof fbq === 'function') {
+                fbq('track', 'CompleteRegistration', { content_name: 'FluxFit Registration', status: true });
+            }
+
             closeModal('loginModal');
             updateNavAuth();
             updatePremiumUI();
